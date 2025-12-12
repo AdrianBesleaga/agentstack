@@ -108,6 +108,7 @@ class LimaDriver(BaseDriver):
                 template_file.write(
                     yaml.dump(
                         {
+                            "ssh": {"overVsock": False},
                             "images": [
                                 {
                                     "location": "https://cloud-images.ubuntu.com/releases/noble/release/ubuntu-24.04-server-cloudimg-amd64.img",
@@ -139,20 +140,14 @@ class LimaDriver(BaseDriver):
                 template_file.flush()
                 template_file.close()
                 await run_command(
-                    [
-                        self.limactl_exe,
-                        "--tty=false",
-                        "start",
-                        str(template_file.name),
-                        f"--name={self.vm_name}",
-                    ],
+                    [self.limactl_exe, "--tty=false", "start", str(template_file.name), f"--name={self.vm_name}"],
                     "Creating a Lima VM",
                     env={"LIMA_HOME": str(Configuration().lima_home)},
                     cwd="/",
                 )
         elif current_status != "running":
             await run_command(
-                [self.limactl_exe, "--tty=false", "start", self.vm_name],
+                [self.limactl_exe, "--tty=false", "start", "--set", ".ssh.overVsock=false", self.vm_name],
                 "Starting up",
                 env={"LIMA_HOME": str(Configuration().lima_home)},
                 cwd="/",
