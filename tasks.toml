@@ -107,6 +107,12 @@ run = """
 #!/bin/bash
 set -e
 
+if [[ "$*" != *"--set externalRegistry="* ]]; then
+  latest_tag=$(git ls-remote --tags $(git remote get-url origin) 'v*' | grep -o 'refs/tags/v[0-9]*\\.[0-9]*\\.[0-9]*$' | sed 's|refs/tags/||' | sort -V | tail -n 1)
+  export AGENTSTACK__AGENT_REGISTRY="https://github.com/i-am-bee/agentstack@$latest_tag#path=agent-registry.yaml"
+  echo "Using agents from: $AGENTSTACK__AGENT_REGISTRY\n  use --set externalRegistry=<null|github-url> to override this."
+fi
+
 UI_IMPORT=""
 UI_TAG=""
 

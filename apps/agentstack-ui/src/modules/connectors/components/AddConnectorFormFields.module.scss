@@ -4,7 +4,7 @@
  */
 
 .root {
-  :global(.cds--label) {
-    white-space: nowrap;
-  }
+  display: flex;
+  flex-direction: column;
+  row-gap: $spacing-05;
 }

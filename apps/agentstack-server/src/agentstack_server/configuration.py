@@ -231,6 +231,7 @@ class DockerConfigJson(BaseModel):
 
 
 class ManagedProviderConfiguration(BaseModel):
+    disable_downscaling: bool = False
     manifest_template_dir: Path | None = None
     self_registration_use_local_network: bool = Field(
         default=False,
@@ -309,6 +310,11 @@ class GenerateConversationTitleConfiguration(BaseModel):
 
         CONVERSATION CONTENT:
         ```
+        {% if titleHint %}
+        Title hint:
+        {{ titleHint }}
+        {% endif %}
+
         User message:
         {{ text }}
 
