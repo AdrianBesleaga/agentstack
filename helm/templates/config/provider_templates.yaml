@@ -26,6 +26,7 @@ data:
         metadata:
           labels:
             app: "{{`{{ provider_app_label }}`}}"
+            type: agentstack-provider
           {{- with .Values.agent.podAnnotations }}
           annotations:
             {{- toYaml . | nindent 12 }}
