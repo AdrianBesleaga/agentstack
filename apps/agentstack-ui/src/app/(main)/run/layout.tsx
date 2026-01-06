@@ -3,6 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+import { AppLayout } from '#components/layouts/AppLayout.tsx';
 import { HeaderLayout } from '#components/layouts/HeaderLayout.tsx';
 import { AgentHeader } from '#modules/agents/components/detail/AgentHeader.tsx';
 
@@ -12,10 +13,12 @@ export default function RunLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <HeaderLayout>
-      <AgentHeader />
+    <AppLayout>
+      <HeaderLayout>
+        <AgentHeader />
 
-      {children}
-    </HeaderLayout>
+        {children}
+      </HeaderLayout>
+    </AppLayout>
   );
 }

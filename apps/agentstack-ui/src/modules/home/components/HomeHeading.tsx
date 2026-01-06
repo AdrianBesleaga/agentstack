@@ -5,14 +5,8 @@
 
 'use client';
 
-import { useApp } from '#contexts/App/index.ts';
-
 import classes from './HomeHeading.module.scss';
 
 export function HomeHeading() {
-  const {
-    config: { appName },
-  } = useApp();
-
-  return <h1 className={classes.root}>Welcome to {appName}.</h1>;
+  return <h1 className={classes.root}>Agents</h1>;
 }

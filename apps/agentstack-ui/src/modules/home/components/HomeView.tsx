@@ -5,9 +5,9 @@
 
 import { Container } from '#components/layouts/Container.tsx';
 import { MainContent } from '#components/layouts/MainContent.tsx';
+import { AgentsList } from '#modules/agents/components/cards/AgentsList.tsx';
 import { fetchProviders } from '#modules/providers/api/index.ts';
 
-import { DiscoverAgentsList } from './DiscoverAgentsList';
 import { HomeHeading } from './HomeHeading';
 import classes from './HomeView.module.scss';
 
@@ -19,7 +19,7 @@ export async function HomeView() {
       <Container className={classes.root}>
         <HomeHeading />
 
-        <DiscoverAgentsList initialData={initialData} />
+        <AgentsList initialData={initialData} />
       </Container>
     </MainContent>
   );
