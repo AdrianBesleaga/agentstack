@@ -16,6 +16,8 @@ RUN --mount=type=cache,target=/tmp/.cache/uv \
 
 FROM python:3.13-alpine3.22
 ARG RELEASE_VERSION="main"
+COPY ./agents/rag/ /app/agents/rag
+COPY ./apps/agentstack-sdk-py/ /app/apps/agentstack-sdk-py/
 COPY --from=builder /app/agents/rag/.venv/ /app/agents/rag/.venv/
 ENV PRODUCTION_MODE=True \
     RELEASE_VERSION=${RELEASE_VERSION}
