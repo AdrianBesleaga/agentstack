@@ -4,7 +4,7 @@
  */
 
 import type { Task, TaskArtifactUpdateEvent } from '@a2a-js/sdk';
-import type { FormRender, SecretDemands } from 'agentstack-sdk';
+import type { FormRender, SecretDemands, ToolCallRequest } from 'agentstack-sdk';
 
 import type { UICanvasEditRequestParams } from '#modules/canvas/types.ts';
 import type { RunFormValues } from '#modules/form/types.ts';
@@ -132,6 +132,11 @@ export type UIArtifactPart = {
   parts: (UITextPart | UIFilePart)[];
 } & Pick<TaskArtifactUpdateEvent['artifact'], 'artifactId' | 'name' | 'description'>;
 
+export type UIToolApprovalPart = {
+  kind: UIMessagePartKind.ToolApproval;
+  toolCall: ToolCallRequest;
+};
+
 export enum UIMessagePartKind {
   Text = 'text',
   File = 'file',
@@ -143,6 +148,7 @@ export enum UIMessagePartKind {
   SecretRequired = 'secret-required',
   Transform = 'transform',
   Artifact = 'artifact',
+  ToolApproval = 'tool-approval',
 }
 
 export enum UIMessageStatus {

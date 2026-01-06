@@ -19,6 +19,7 @@ export * from './client/a2a/extensions/services/mcp';
 export * from './client/a2a/extensions/services/oauth-provider';
 export * from './client/a2a/extensions/services/platform';
 export * from './client/a2a/extensions/services/secrets';
+export * from './client/a2a/extensions/tools/tool-call';
 export * from './client/a2a/extensions/types';
 export * from './client/a2a/extensions/ui/agent-detail';
 export * from './client/a2a/extensions/ui/canvas';

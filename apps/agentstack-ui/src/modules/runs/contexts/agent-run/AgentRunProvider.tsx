@@ -8,6 +8,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { TaskStatusUpdateType } from 'agentstack-sdk';
 import type { PropsWithChildren } from 'react';
 import { useCallback, useMemo, useRef, useState } from 'react';
+import { match } from 'ts-pattern';
 import { v4 as uuid } from 'uuid';
 
 import type { AgentA2AClient, ChatRun } from '#api/a2a/types.ts';
@@ -242,31 +243,42 @@ function AgentRunProvider({ agent, agentClient, children }: PropsWithChildren<Ag
         });
 
         const result = await run.done;
-        if (result && result.type === TaskStatusUpdateType.FormRequired) {
-          updateCurrentAgentMessage((message) => {
-            message.status = UIMessageStatus.InputRequired;
-            message.parts.push({ kind: UIMessagePartKind.Form, render: result.form });
-          });
-        } else if (result && result.type === TaskStatusUpdateType.OAuthRequired) {
-          updateCurrentAgentMessage((message) => {
-            message.status = UIMessageStatus.InputRequired;
-            message.parts.push({ kind: UIMessagePartKind.OAuth, url: result.url, taskId: result.taskId });
-          });
-        } else if (result && result.type === TaskStatusUpdateType.SecretRequired) {
-          updateCurrentAgentMessage((message) => {
-            message.status = UIMessageStatus.InputRequired;
 
-            message.parts.push({
-              kind: UIMessagePartKind.SecretRequired,
-              secret: result.demands,
-              taskId: result.taskId,
+        match(result)
+          .with({ type: TaskStatusUpdateType.FormRequired }, ({ form }) => {
+            updateCurrentAgentMessage((message) => {
+              message.status = UIMessageStatus.InputRequired;
+              message.parts.push({ kind: UIMessagePartKind.Form, render: form });
+            });
+          })
+          .with({ type: TaskStatusUpdateType.OAuthRequired }, ({ url, taskId }) => {
+            updateCurrentAgentMessage((message) => {
+              message.status = UIMessageStatus.InputRequired;
+              message.parts.push({ kind: UIMessagePartKind.OAuth, url, taskId });
+            });
+          })
+          .with({ type: TaskStatusUpdateType.SecretRequired }, ({ demands, taskId }) => {
+            updateCurrentAgentMessage((message) => {
+              message.status = UIMessageStatus.InputRequired;
+              message.parts.push({
+                kind: UIMessagePartKind.SecretRequired,
+                secret: demands,
+                taskId,
+              });
+            });
+          })
+          .with({ type: TaskStatusUpdateType.ToolCallApprovalRequired }, ({ toolCall }) => {
+            updateCurrentAgentMessage((message) => {
+              message.status = UIMessageStatus.InputRequired;
+              // TODO: handle tool call approval part rendering in UI
+              // message.parts.push({ kind: UIMessagePartKind.ToolApproval, toolCall });
+            });
+          })
+          .otherwise(() => {
+            updateCurrentAgentMessage((message) => {
+              message.status = UIMessageStatus.Completed;
             });
           });
-        } else {
-          updateCurrentAgentMessage((message) => {
-            message.status = UIMessageStatus.Completed;
-          });
-        }
       } catch (error) {
         handleError(error);
       } finally {
