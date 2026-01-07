@@ -38,7 +38,7 @@ User provides a release tag (e.g., `v0.4.5`)
    - UI features
    - CLI features, changes, improvements, fixes
 
-- Dont include internal changes that are not surfaced to either user running agent, or developer building agent
+- Don't include internal changes that are not surfaced to either user running agent, or developer building agent
 - Be concise, one longer paragraph per feature, couple sentences
 - Focus on user-facing impact, not implementation details
 - Highlight breaking changes prominently
