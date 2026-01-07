@@ -20,6 +20,14 @@
   margin: 0;
 }
 
+.backLink {
+  color: $text-primary;
+  text-decoration: none;
+  display: flex;
+  align-items: center;
+  column-gap: $spacing-02;
+}
+
 .buttons {
   margin-inline-start: auto;
   display: flex;

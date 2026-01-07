@@ -73,15 +73,17 @@ export function maybeParseJson(content: string | null | undefined): MaybeParsedJ
 }
 
 export function getRunParamsFromUrl(pathname: string) {
-  // Parse parameters from pathname: /run/[providerId]/c/[contextId] or /run/[providerId]
+  // Parse parameters from pathname: /[providerId]/c/[contextId], /[providerId]/about, /[providerId]/settings, or /run/[providerId]
   // because useParams does not react to changes in the URL via history.pushState
-  const match = pathname.match(/^\/run\/([^/]+)(?:\/c\/([^/]+))?/);
+  const match = pathname.match(/^\/([^/]+)(?:\/c\/([^/]+)|\/(about|settings))?/);
 
   const providerId = match?.at(1);
   const contextId = match?.at(2);
+  const subRoute = match?.at(3) as 'about' | 'settings' | undefined;
 
   return {
     providerId,
     contextId,
+    subRoute,
   };
 }
