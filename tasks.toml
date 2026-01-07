@@ -336,6 +336,7 @@ echo -e "✅ Pushed tag $current_version to \x1b[36morigin/release\x1b[0m"
 echo -e "💡 Check the pipeline progress and result on: https://github.com/i-am-bee/agentstack/actions/workflows/release.yml"
 
 {{ mise_bin }} release:set-version "$next_version"
+git push
 
 set -x
 git checkout main
