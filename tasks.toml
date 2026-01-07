@@ -344,6 +344,7 @@ git pull
 git restore --source=release install.sh
 git add install.sh
 git commit --signoff --no-verify -m "chore: update install.sh prerelease version to v$current_version"
+git push
 set +x
 echo -e "✅ Updated \x1b[36minstall.sh\x1b[0m on \x1b[36mmain\x1b[0m to install $current_version when set to prerelease mode"
 
@@ -396,6 +397,7 @@ set +x
 set -x
 git add install.sh
 git commit --signoff --no-verify -m "chore: update install.sh version to v$publish_version"
+git push
 set +x
 echo -e "✅ Updated \x1b[36minstall.sh\x1b[0m on \x1b[36mmain\x1b[0m to install \x1b[36m$publish_version\x1b[0m by default"
 
