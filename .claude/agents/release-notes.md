@@ -52,7 +52,7 @@ User provides a release tag (e.g., `v0.4.5`)
 
 ### 🚀 Major Changes
 
-Short and brief description about the feature, its implication on users / agent builders potential breaking change for the SDK etc.
+Short description about the feature, its implication on users / agent builders potential breaking change for the SDK etc.
 
 
 ### What's Changed
