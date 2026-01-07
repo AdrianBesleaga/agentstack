@@ -1,32 +1,31 @@
 /**
- * Copyright 2025 © BeeAI a Series of LF Projects, LLC
+ * Copyright 2026 © BeeAI a Series of LF Projects, LLC
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { Menu, RightPanelClose, RightPanelOpen } from '@carbon/icons-react';
 import { Button } from '@carbon/react';
-
-import { useApp } from '#contexts/App/index.ts';
+import clsx from 'clsx';
+import type { ComponentType } from 'react';
 
 import classes from './SidebarButton.module.scss';
 
-export function SidebarButton() {
-  const {
-    config: { appName },
-    sidebarOpen,
-    openSidebar,
-    closeSidebar,
-  } = useApp();
+interface Props {
+  onClick?: () => void;
+  icon: ComponentType;
+  hoverIcon?: ComponentType;
+  label: string;
+}
 
+export function SidebarButton({ onClick, icon: Icon, hoverIcon: HoverIcon, label }: Props) {
   return (
-    <Button className={classes.root} kind="ghost" size="sm" onClick={sidebarOpen ? closeSidebar : openSidebar}>
-      <div className={classes.icon}>
-        <Menu />
+    <Button className={classes.root} kind="ghost" size="sm" onClick={() => onClick?.()}>
+      <div className={clsx(classes.icon, { [classes.withHoverIcon]: Boolean(HoverIcon) })}>
+        <Icon />
 
-        {sidebarOpen ? <RightPanelOpen /> : <RightPanelClose />}
+        {HoverIcon && <HoverIcon />}
       </div>
 
-      <span className={classes.label}>{appName}</span>
+      <span className={classes.label}>{label}</span>
     </Button>
   );
 }

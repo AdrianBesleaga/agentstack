@@ -67,8 +67,8 @@ export function SettingsView() {
 }
 
 const ITEMS: { title: string; component: ComponentType; featureName?: FeatureName }[] = [
+  { title: 'Theme', component: ThemeView },
   { title: 'Variables', component: VariablesView, featureName: 'Variables' },
   { title: 'Agent providers', component: ProvidersView, featureName: 'Providers' },
   { title: 'Connectors', component: ConnectorsView, featureName: 'Connectors' },
-  { title: 'Theme', component: ThemeView },
 ];

@@ -18,8 +18,8 @@
   min-inline-size: 0;
   flex-grow: 1;
   text-decoration: none;
-  font-size: rem(14px);
-  line-height: math.div(18, 14);
+  font-size: rem(16px);
+  line-height: math.div(18, 16);
   color: $text-dark;
   display: flex;
   flex-direction: column;
@@ -87,6 +87,5 @@
 .skeleton {
   &:global(.cds--btn.cds--skeleton) {
     inline-size: 100%;
-    min-block-size: rem(50px);
   }
 }

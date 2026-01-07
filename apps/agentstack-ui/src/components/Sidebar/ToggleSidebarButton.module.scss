@@ -20,11 +20,9 @@
     grid-column: 1 / -1;
     transition: opacity $duration-fast-01 motion(entrance, productive);
   }
-  &.withHoverIcon {
-    .root:not(:hover) & > svg:last-child,
-    .root:hover & > svg:first-child {
-      opacity: 0;
-    }
+  .root:not(:hover) & > svg:last-child,
+  .root:hover & > svg:first-child {
+    opacity: 0;
   }
 }
 
@@ -32,6 +30,7 @@
   @include line-clamp();
   font-size: rem(16px);
   line-height: math.div(18, 16);
+  font-weight: 600;
   color: $text-dark;
   min-inline-size: 0;
 }

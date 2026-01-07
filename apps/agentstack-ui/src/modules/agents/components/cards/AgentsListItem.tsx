@@ -22,7 +22,12 @@ export function AgentsListItem({ agent }: Props) {
 
   return (
     <article className={classes.root}>
-      <Link href={routes.agentRun({ providerId: provider.id })} className={classes.link}>
+      <Link
+        href={routes.agentRun({ providerId: provider.id })}
+        className={classes.link}
+        target="_blank"
+        rel="noreferrer"
+      >
         {name}
         <ArrowUpRight size={LINK_ICON_SIZE} />
       </Link>

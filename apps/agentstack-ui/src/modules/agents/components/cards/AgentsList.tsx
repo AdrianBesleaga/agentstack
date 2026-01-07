@@ -24,7 +24,7 @@ export function AgentsList({ initialData }: Props) {
   const noItems = agents?.length === 0 && !isLoading;
 
   if (noItems) {
-    return null;
+    return <div className={classes.noItems}>No agents yet. Deploy one to see it here!</div>;
   }
 
   return (

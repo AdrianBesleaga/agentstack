@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-$row-gap: $spacing-05;
+$row-gap: $spacing-07;
 $padding: $spacing-05;
 
 .root {
@@ -37,7 +37,6 @@ $padding: $spacing-05;
 
 .body {
   display: flex;
-  padding-block-start: $spacing-05;
   padding-inline: $padding;
   margin-inline: -$padding;
   min-inline-size: 0;

@@ -7,7 +7,6 @@ import clsx from 'clsx';
 
 import { SessionsNav } from '#modules/history/components/SessionsNav.tsx';
 
-import { AgentsNav } from './AgentsNav';
 import classes from './SidebarMainContent.module.scss';
 
 interface Props {
@@ -17,8 +16,6 @@ interface Props {
 export function SidebarMainContent({ className }: Props) {
   return (
     <div className={clsx(classes.root, className)}>
-      <AgentsNav className={classes.agentsNav} />
-
       <SessionsNav className={classes.sessions} />
     </div>
   );

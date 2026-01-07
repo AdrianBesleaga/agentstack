@@ -4,13 +4,11 @@
  */
 
 .root {
-  --row-gap: #{$spacing-07};
-
   display: flex;
   flex-direction: column;
-  row-gap: var(--row-gap);
-}
+  gap: $spacing-05;
 
-.sessions {
-  flex: 1 1 0;
+  h2 {
+    @include type-style('heading-02');
+  }
 }

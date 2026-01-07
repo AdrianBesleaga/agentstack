@@ -7,7 +7,9 @@
 import { Settings } from '@carbon/icons-react';
 import { Button } from '@carbon/react';
 
+import { UserNav } from '#components/Sidebar/UserNav.tsx';
 import { useApp } from '#contexts/App/index.ts';
+import { routes } from '#utils/router.ts';
 
 import classes from './CommonFooter.module.scss';
 
@@ -19,9 +21,15 @@ export function CommonFooter() {
   return (
     <div className={classes.root}>
       {isAuthEnabled ? (
-        <></>
+        <UserNav />
       ) : (
-        <Button kind="ghost" size="sm" renderIcon={Settings} className={classes.settingsButton}>
+        <Button
+          href={routes.settings()}
+          kind="ghost"
+          size="sm"
+          renderIcon={Settings}
+          className={classes.settingsButton}
+        >
           Settings
         </Button>
       )}

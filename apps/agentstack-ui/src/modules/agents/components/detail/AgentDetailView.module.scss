@@ -4,13 +4,23 @@
  */
 
 .root {
-  display: flex;
-  flex-direction: column;
-  row-gap: $spacing-02;
+  h2 {
+    @include type-style('heading-02');
+  }
 }
 
-.empty {
-  padding: rem(7px) $spacing-03;
+.info {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-05;
+}
+
+.mainInfo {
+  display: flex;
+  flex-direction: column;
+  row-gap: $spacing-03;
+}
+
+.mainContent {
   font-size: rem(16px);
-  line-height: math.div(18, 16);
 }

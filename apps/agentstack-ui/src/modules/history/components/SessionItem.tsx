@@ -59,7 +59,7 @@ export function SessionItem({ contextId, providerId, heading, subHeading, isActi
 SessionItem.Skeleton = function NavItemSkeleton() {
   return (
     <li>
-      <ButtonSkeleton className={classes.skeleton} />
+      <ButtonSkeleton className={classes.skeleton} size="sm" />
     </li>
   );
 };

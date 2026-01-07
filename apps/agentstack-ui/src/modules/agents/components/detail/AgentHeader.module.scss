@@ -12,14 +12,17 @@
 
 .agentName {
   @include line-clamp();
+  @include type-style(body-02);
   line-height: math.div(18, 16);
   color: $text-dark;
   min-inline-size: 0;
+  font-weight: 600;
+  margin: 0;
 }
 
 .buttons {
   margin-inline-start: auto;
   display: flex;
   justify-content: flex-end;
-  column-gap: $spacing-05;
+  column-gap: $spacing-02;
 }

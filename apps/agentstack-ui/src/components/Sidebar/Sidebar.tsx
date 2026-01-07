@@ -5,16 +5,20 @@
 
 'use client';
 import clsx from 'clsx';
+import { useRouter } from 'next/navigation';
 import type { TransitionEvent, TransitionEventHandler } from 'react';
 import { useCallback, useRef, useState } from 'react';
 
 import { useApp } from '#contexts/App/index.ts';
+import { useParamsFromUrl } from '#hooks/useParamsFromUrl.ts';
+import { routes } from '#utils/router.ts';
 
-import { MainNav } from './MainNav';
+import NewSession from './NewSession.svg';
+import { SessionsButton } from './SessionsButton';
 import classes from './Sidebar.module.scss';
 import { SidebarButton } from './SidebarButton';
 import { SidebarMainContent } from './SidebarMainContent';
-import { SideNav } from './SideNav';
+import { ToggleSidebarButton } from './ToggleSidebarButton';
 import { UserNav } from './UserNav';
 
 interface Props {
@@ -24,6 +28,9 @@ interface Props {
 export function Sidebar({ className }: Props) {
   const ref = useRef<HTMLDivElement>(null);
   const [isAnimating, setIsAnimating] = useState(false);
+
+  const router = useRouter();
+  const { providerId } = useParamsFromUrl();
 
   const {
     config: { isAuthEnabled },
@@ -70,26 +77,22 @@ export function Sidebar({ className }: Props) {
     >
       <div className={classes.content}>
         <header className={classes.stack}>
-          <SidebarButton />
+          <ToggleSidebarButton />
 
-          <MainNav />
+          <SidebarButton
+            icon={NewSession}
+            label="New Session"
+            onClick={() => {
+              router.push(routes.agentRun({ providerId: String(providerId) }));
+            }}
+          />
         </header>
 
         <div className={classes.body}>
-          <SidebarMainContent className={classes.mainContent} />
+          {sidebarOpen ? <SidebarMainContent className={classes.mainContent} /> : <SessionsButton />}
         </div>
 
-        <footer className={classes.stack}>
-          <SideNav />
-
-          {isAuthEnabled && (
-            <>
-              <hr className={classes.separator} />
-
-              <UserNav />
-            </>
-          )}
-        </footer>
+        <footer className={classes.stack}>{isAuthEnabled && <UserNav />}</footer>
       </div>
     </div>
   );

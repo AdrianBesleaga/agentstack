@@ -4,13 +4,12 @@
  */
 
 'use client';
-
-import { AppName } from '#components/AppName/AppName.tsx';
 import { AppHeader } from '#components/layouts/AppHeader.tsx';
 import { useParamsFromUrl } from '#hooks/useParamsFromUrl.ts';
 import { useAgent } from '#modules/agents/api/queries/useAgent.ts';
 
 import classes from './AgentHeader.module.scss';
+import { AgentNav } from './AgentNav';
 import { AgentShareButton } from './AgentShareButton';
 
 export function AgentHeader() {
@@ -20,14 +19,13 @@ export function AgentHeader() {
   return (
     <AppHeader>
       <div className={classes.root}>
-        <AppName />
-
         {agent && (
           <>
-            <p className={classes.agentName}>{agent.name}</p>
+            <h1 className={classes.agentName}>{agent.name}</h1>
 
             <div className={classes.buttons}>
               <AgentShareButton agent={agent} />
+              <AgentNav />
             </div>
           </>
         )}

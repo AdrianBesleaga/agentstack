@@ -6,7 +6,7 @@
 .root {
   display: flex;
   align-items: center;
-  column-gap: $spacing-05;
+  column-gap: $spacing-03;
   :global(.cds--overflow-menu__wrapper) {
     flex-shrink: 0;
   }
@@ -19,4 +19,12 @@
 
 .menu {
   transform: translate(0, -$spacing-02);
+  inline-size: rem(179px);
+
+  :global(.cds--overflow-menu--divider) {
+    margin-block-start: calc($spacing-04 + 1px);
+    &::before {
+      inset-block-start: calc(($spacing-03 + 1px) * -1);
+    }
+  }
 }

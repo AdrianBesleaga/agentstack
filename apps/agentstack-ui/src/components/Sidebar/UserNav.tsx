@@ -4,8 +4,6 @@
  */
 
 'use client';
-
-import { Logout } from '@carbon/icons-react';
 import { OverflowMenu, OverflowMenuItem } from '@carbon/react';
 import { signOut } from 'next-auth/react';
 import type { PropsWithChildren } from 'react';
@@ -25,8 +23,12 @@ export function UserNav() {
   const items: NavItemProps[] = useMemo(
     () => [
       {
+        label: 'Global settings',
+        href: routes.settings(),
+      },
+      {
         label: 'Log out',
-        Icon: Logout,
+        hasDivider: true,
         onClick: () => signOut({ redirectTo: routes.signIn() }),
       },
     ],
