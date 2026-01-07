@@ -1,7 +1,7 @@
 ---
 name: release-notes
 description: Generate release notes for a specific version tag by analyzing merged PRs
-tools: Bash, Read, Glob, Grep, Read
+tools: Bash, Read, Glob, Grep
 model: sonnet
 ---
 
