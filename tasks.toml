@@ -253,7 +253,7 @@ fi
 
 set -x
 git checkout main
-git pull origin main
+git pull
 set +x
 
 current_version=$(yq -r '.version' helm/Chart.yaml)
@@ -308,7 +308,7 @@ fi
 
 set -x
 git checkout release
-git pull origin release
+git pull
 set +x
 
 current_version=$(yq -r '.version' helm/Chart.yaml)
@@ -339,7 +339,7 @@ echo -e "💡 Check the pipeline progress and result on: https://github.com/i-am
 
 set -x
 git checkout main
-git pull origin main
+git pull
 git restore release install.sh
 git add install.sh
 git commit -m "chore: update install.sh prerelease version to v$current_version"
@@ -363,7 +363,7 @@ fi
 
 set -x
 git checkout release
-git pull origin release
+git pull
 set +x
 
 current_version=$(yq -r '.version' helm/Chart.yaml)
@@ -389,7 +389,7 @@ echo "💡 Check the pipeline progress and result on: https://github.com/i-am-be
 
 set -x
 git checkout main
-git pull origin main
+git pull
 set +x
 
 set -x
