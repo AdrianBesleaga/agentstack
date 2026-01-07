@@ -233,7 +233,7 @@ if [[ "$usage_version" == *"-rc"* ]]; then
 fi
 
 git add .
-git commit -m "bump: v$usage_version"
+git commit --signoff --no-verify -m "bump: v$usage_version"
 set +x
 
 echo -e "✅ Pending version in \x1b[36m$(git branch --show-current)\x1b[0m bumped to $usage_version"
@@ -340,9 +340,9 @@ echo -e "💡 Check the pipeline progress and result on: https://github.com/i-am
 set -x
 git checkout main
 git pull
-git restore release install.sh
+git restore --source=release install.sh
 git add install.sh
-git commit -m "chore: update install.sh prerelease version to v$current_version"
+git commit --signoff --no-verify -m "chore: update install.sh prerelease version to v$current_version"
 set +x
 echo -e "✅ Updated \x1b[36minstall.sh\x1b[0m on \x1b[36mmain\x1b[0m to install $current_version when set to prerelease mode"
 
@@ -394,15 +394,15 @@ set +x
 
 set -x
 git add install.sh
-git commit -m "chore: update install.sh version to v$publish_version"
+git commit --signoff --no-verify -m "chore: update install.sh version to v$publish_version"
 set +x
 echo -e "✅ Updated \x1b[36minstall.sh\x1b[0m on \x1b[36mmain\x1b[0m to install \x1b[36m$publish_version\x1b[0m by default"
 
 set -x
 rm -rf docs/stable docs/development
-git restore release docs/development
+git restore --source=release docs/development
 mv docs/development docs/stable
-git restore main docs/development
+git restore --source=main docs/development
 git show release:docs/docs.json | \
   jq '(.navigation.versions[] | select(.version == "development")) | .version = "stable" | (.groups[].pages[] |= sub("development/"; "stable/"))' \
   > .new-stable.json
@@ -411,7 +411,7 @@ jq --slurpfile new_stable .new-stable.json \
   docs/docs.json > docs.json.tmp && mv docs.json.tmp docs/docs.json
 rm .new-stable.json
 git add docs/stable docs/docs.json
-git commit -m "docs: publish stable docs for v$publish_version"
+git commit --signoff --no-verify -m "docs: publish stable docs for v$publish_version"
 git push origin main
 set +x
 echo -e "✅ Published \x1b[36mstable\x1b[0m docs for \x1b[36mv$publish_version\x1b[0m"
