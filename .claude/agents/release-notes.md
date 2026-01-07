@@ -39,7 +39,7 @@ User provides a release tag (e.g., `v0.4.5`)
    - CLI features, changes, improvements, fixes
 
 - Don't include internal changes that are not surfaced to either user running agent, or developer building agent
-- Be concise, one longer paragraph per feature, couple sentences
+- Be concise, with each feature described in a single paragraph of a few sentences.
 - Focus on user-facing impact, not implementation details
 - Highlight breaking changes prominently
 - Include PR number
