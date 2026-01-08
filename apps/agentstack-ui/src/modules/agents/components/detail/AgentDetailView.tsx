@@ -4,62 +4,86 @@
  */
 
 'use client';
-import { SkeletonText } from '@carbon/react';
+import { LogoGithub } from '@carbon/icons-react';
+import { AnimatePresence, motion } from 'framer-motion';
 
 import { Container } from '#components/layouts/Container.tsx';
 import { MainContent } from '#components/layouts/MainContent.tsx';
+import { ExternalLink } from '#components/MarkdownContent/components/ExternalLink.tsx';
 import { MarkdownContent } from '#components/MarkdownContent/MarkdownContent.tsx';
 import { ViewHeader } from '#components/ViewHeader/ViewHeader.tsx';
-import { ViewStack } from '#components/ViewStack/ViewStack.tsx';
-import { useParamsFromUrl } from '#hooks/useParamsFromUrl.ts';
-import { useAgent } from '#modules/agents/api/queries/useAgent.ts';
+import type { Agent } from '#modules/agents/api/types.ts';
+import { fadeProps } from '#utils/fadeProps.ts';
 
 import { AgentCredits } from './AgentCredits';
 import classes from './AgentDetailView.module.scss';
-import { AgentTags } from './AgentTags';
 import { AgentToolsList } from './AgentToolsList';
 
-export function AgentDetailView() {
-  const { providerId } = useParamsFromUrl();
-  const { data: agent, isPending } = useAgent({ providerId: providerId ?? '' });
+interface Props {
+  agent: Agent;
+}
 
-  if (!agent) {
-    return null;
-  }
-
+export function AgentDetailView({ agent }: Props) {
   const {
     description,
+    documentationUrl,
     ui: { contributors, author },
   } = agent;
 
   return (
     <MainContent>
-      <Container size="sm" className={classes.root}>
-        <ViewStack>
-          <ViewHeader heading="Agent details" />
+      <Container size="sm">
+        <AnimatePresence>
+          <motion.div {...agentDetailFadeProps} key="header">
+            <ViewHeader heading="Agent details" />
+          </motion.div>
 
-          <div className={classes.info}>
-            {!isPending ? (
+          <div className={classes.main}>
+            <div className={classes.mainInfo}>
+              {documentationUrl && (
+                <motion.div {...agentDetailFadeProps} key="documentationLink">
+                  <ExternalLink href={documentationUrl} className={classes.documentationLink}>
+                    View source code <LogoGithub />
+                  </ExternalLink>
+                </motion.div>
+              )}
+
+              <motion.div {...agentDetailFadeProps} key="description">
+                {description && <MarkdownContent className={classes.description}>{description}</MarkdownContent>}
+              </motion.div>
+            </div>
+
+            {/* <AgentTags agent={agent} /> */}
+
+            {(author || contributors) && (
               <>
-                <div className={classes.mainInfo}>
-                  {description && <MarkdownContent className={classes.mainContent}>{description}</MarkdownContent>}
-
-                  {(author || contributors) && <AgentCredits author={author} contributors={contributors} />}
-                </div>
-
-                <AgentTags agent={agent} />
+                <motion.hr />
+                <motion.div {...agentDetailFadeProps} key="credits">
+                  <AgentCredits author={author} contributors={contributors} />
+                </motion.div>
               </>
-            ) : (
-              <SkeletonText paragraph lineCount={5} />
             )}
-          </div>
 
-          <div>
-            <h2>Tools</h2>
-            <AgentToolsList agent={agent} />
+            <motion.hr />
+
+            <motion.div {...agentDetailFadeProps} className={classes.tools}>
+              <h2>Tools</h2>
+              <AgentToolsList agent={agent} />
+            </motion.div>
           </div>
-        </ViewStack>
+        </AnimatePresence>
       </Container>
     </MainContent>
   );
 }
+
+export const agentDetailFadeProps = {
+  ...fadeProps({
+    hidden: {
+      marginBlockStart: '0.75rem',
+    },
+    visible: {
+      marginBlockStart: '0',
+    },
+  }),
+};

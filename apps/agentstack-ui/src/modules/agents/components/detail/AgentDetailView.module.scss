@@ -3,24 +3,39 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-.root {
-  h2 {
-    @include type-style('heading-02');
-  }
-}
-
-.info {
+.main {
   display: flex;
   flex-direction: column;
-  gap: $spacing-05;
+  row-gap: $spacing-07;
 }
 
 .mainInfo {
   display: flex;
   flex-direction: column;
-  row-gap: $spacing-03;
+  gap: $spacing-05;
+  padding-block-start: $spacing-05;
 }
 
-.mainContent {
-  font-size: rem(16px);
+.description {
+  font-size: rem(20px);
+  line-height: math.div(28, 20);
+}
+
+.documentationLink {
+  color: $text-primary;
+  text-decoration: none;
+  display: flex;
+  align-items: center;
+  gap: $spacing-02;
+}
+
+.tools {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-05;
+
+  h2 {
+    font-size: rem(20px);
+    line-height: math.div(28, 20);
+  }
 }

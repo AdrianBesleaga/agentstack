@@ -3,7 +3,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-'use server';
+'server only';
+
 import { notFound } from 'next/navigation';
 
 import { ErrorWithResponse } from '#api/errors.ts';

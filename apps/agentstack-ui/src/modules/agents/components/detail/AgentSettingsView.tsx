@@ -4,6 +4,8 @@
  */
 
 'use client';
+import { AnimatePresence, motion } from 'framer-motion';
+
 import { Container } from '#components/layouts/Container.tsx';
 import { MainContent } from '#components/layouts/MainContent.tsx';
 import { ViewHeader } from '#components/ViewHeader/ViewHeader.tsx';
@@ -12,6 +14,7 @@ import type { Agent } from '#modules/agents/api/types.ts';
 import { useBuildA2AClient } from '#modules/runs/api/queries/useBuildA2AClient.ts';
 import { AgentSecretsProvider } from '#modules/runs/contexts/agent-secrets/AgentSecretsProvider.tsx';
 
+import { agentDetailFadeProps } from './AgentDetailView';
 import { AgentSecrets } from './AgentSecrets';
 import { AgentSection } from './AgentSection';
 import classes from './AgentSettingsView.module.scss';
@@ -34,11 +37,17 @@ export function AgentSettingsView({ agent }: Props) {
       <MainContent>
         <Container size="sm" className={classes.root}>
           <ViewStack>
-            <ViewHeader heading="Agent settings" />
+            <AnimatePresence>
+              <motion.div {...agentDetailFadeProps} key="header">
+                <ViewHeader heading="Agent settings" />
+              </motion.div>
 
-            <AgentSection title="Secrets">
-              <AgentSecrets />
-            </AgentSection>
+              <motion.div {...agentDetailFadeProps} key="secrets">
+                <AgentSection title="Secrets">
+                  <AgentSecrets />
+                </AgentSection>
+              </motion.div>
+            </AnimatePresence>
           </ViewStack>
         </Container>
       </MainContent>

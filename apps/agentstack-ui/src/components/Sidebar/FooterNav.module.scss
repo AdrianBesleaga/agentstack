@@ -1,0 +1,17 @@
+/**
+ * Copyright 2025 © BeeAI a Series of LF Projects, LLC
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+.settingsButton {
+  @include type-style(body-01);
+  font-size: rem(16px);
+  padding-inline: $spacing-03 - rem(1px);
+  gap: $spacing-03;
+  justify-content: flex-start;
+  align-items: center;
+
+  :global(.cds--btn__icon) {
+    margin-inline-start: 0;
+  }
+}

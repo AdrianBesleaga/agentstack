@@ -11,14 +11,15 @@ import classes from './SidebarButton.module.scss';
 
 interface Props {
   onClick?: () => void;
+  href?: string;
   icon: ComponentType;
   hoverIcon?: ComponentType;
   label: string;
 }
 
-export function SidebarButton({ onClick, icon: Icon, hoverIcon: HoverIcon, label }: Props) {
+export function SidebarButton({ onClick, href, icon: Icon, hoverIcon: HoverIcon, label }: Props) {
   return (
-    <Button className={classes.root} kind="ghost" size="sm" onClick={() => onClick?.()}>
+    <Button className={classes.root} kind="ghost" size="sm" onClick={() => onClick?.()} href={href}>
       <div className={clsx(classes.icon, { [classes.withHoverIcon]: Boolean(HoverIcon) })}>
         <Icon />
 

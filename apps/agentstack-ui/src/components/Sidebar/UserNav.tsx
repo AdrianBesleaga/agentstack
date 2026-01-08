@@ -11,6 +11,7 @@ import { useMemo } from 'react';
 
 import UserAvatar from '#components/Sidebar/UserAvatar.tsx';
 import { useRouteTransition } from '#contexts/TransitionContext/index.ts';
+import { useParamsFromUrl } from '#hooks/useParamsFromUrl.ts';
 import { routes } from '#utils/router.ts';
 
 import type { NavItemProps } from './NavItem';
@@ -19,12 +20,13 @@ import classes from './UserNav.module.scss';
 
 export function UserNav() {
   const { transitionTo } = useRouteTransition();
+  const { providerId } = useParamsFromUrl();
 
   const items: NavItemProps[] = useMemo(
     () => [
       {
         label: 'Global settings',
-        href: routes.settings(),
+        href: routes.settings({ providerId }),
       },
       {
         label: 'Log out',
@@ -32,7 +34,7 @@ export function UserNav() {
         onClick: () => signOut({ redirectTo: routes.signIn() }),
       },
     ],
-    [],
+    [providerId],
   );
 
   return (

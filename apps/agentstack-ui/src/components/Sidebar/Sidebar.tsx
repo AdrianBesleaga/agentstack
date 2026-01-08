@@ -13,13 +13,13 @@ import { useApp } from '#contexts/App/index.ts';
 import { useParamsFromUrl } from '#hooks/useParamsFromUrl.ts';
 import { routes } from '#utils/router.ts';
 
+import { FooterNav } from './FooterNav';
 import NewSession from './NewSession.svg';
 import { SessionsButton } from './SessionsButton';
 import classes from './Sidebar.module.scss';
 import { SidebarButton } from './SidebarButton';
 import { SidebarMainContent } from './SidebarMainContent';
 import { ToggleSidebarButton } from './ToggleSidebarButton';
-import { UserNav } from './UserNav';
 
 interface Props {
   className?: string;
@@ -32,10 +32,7 @@ export function Sidebar({ className }: Props) {
   const router = useRouter();
   const { providerId } = useParamsFromUrl();
 
-  const {
-    config: { isAuthEnabled },
-    sidebarOpen,
-  } = useApp();
+  const { sidebarOpen } = useApp();
 
   const checkTransition = useCallback((event: TransitionEvent) => {
     const {
@@ -92,7 +89,9 @@ export function Sidebar({ className }: Props) {
           {sidebarOpen ? <SidebarMainContent className={classes.mainContent} /> : <SessionsButton />}
         </div>
 
-        <footer className={classes.stack}>{isAuthEnabled && <UserNav />}</footer>
+        <footer className={classes.stack}>
+          <FooterNav />
+        </footer>
       </div>
     </div>
   );

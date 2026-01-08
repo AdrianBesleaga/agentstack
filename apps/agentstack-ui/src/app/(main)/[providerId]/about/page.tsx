@@ -5,6 +5,15 @@
 
 import { AgentDetailView } from '#modules/agents/components/detail/AgentDetailView.tsx';
 
-export default async function AgentDetailPage() {
-  return <AgentDetailView />;
+import { fetchAgent } from '../rsc';
+interface Props {
+  params: Promise<{ providerId: string }>;
+}
+
+export default async function AgentSettingsPage({ params }: Props) {
+  const { providerId } = await params;
+
+  const agent = await fetchAgent(providerId);
+
+  return <AgentDetailView agent={agent} />;
 }

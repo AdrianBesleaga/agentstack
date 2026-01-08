@@ -13,7 +13,9 @@ export function CommonLayout({ children }: PropsWithChildren) {
   return (
     <div className={classes.root}>
       <CommonHeader />
-      <main data-route-transition>{children}</main>
+      <main data-route-transition className={classes.main}>
+        {children}
+      </main>
       <CommonFooter />
     </div>
   );

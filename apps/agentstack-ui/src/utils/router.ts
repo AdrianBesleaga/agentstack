@@ -11,19 +11,19 @@ export const routes = {
   signIn: ({ callbackUrl }: { callbackUrl?: string } = {}) =>
     `/signin${callbackUrl ? `?callbackUrl=${encodeURIComponent(callbackUrl)}` : ''}`,
   notFound: () => '/not-found' as const,
-  agentHome: ({ providerId }: AgentPageParams) => `/${encodeURIComponent(providerId)}`,
+  agentRoute: ({ providerId }: AgentRouteParams) => `/${encodeURIComponent(providerId)}`,
   agentRun: ({ providerId, contextId }: AgentRunParams) =>
-    `${routes.agentHome({ providerId })}${contextId ? `/c/${encodeURIComponent(contextId)}` : ''}`,
-  agentSettings: ({ providerId }: AgentPageParams) => `${routes.agentHome({ providerId })}/settings`,
-  agentAbout: ({ providerId }: AgentPageParams) => `${routes.agentHome({ providerId })}/about`,
-  settings: () => '/settings' as const,
+    `${routes.agentRoute({ providerId })}${contextId ? `/c/${encodeURIComponent(contextId)}` : ''}`,
+  agentSettings: (params: AgentRouteParams) => `${routes.agentRoute(params)}/settings`,
+  agentAbout: (params: AgentRouteParams) => `${routes.agentRoute(params)}/about`,
+  settings: ({ providerId }: Partial<AgentRouteParams> = {}) =>
+    providerId ? `${routes.agentRoute({ providerId })}/global-settings` : '/settings',
 };
 
-interface AgentRunParams {
+interface AgentRouteParams {
   providerId: string;
-  contextId?: string;
 }
 
-interface AgentPageParams {
-  providerId: string;
+interface AgentRunParams extends AgentRouteParams {
+  contextId?: string;
 }

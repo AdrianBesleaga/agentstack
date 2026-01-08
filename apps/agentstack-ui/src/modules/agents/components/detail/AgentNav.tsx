@@ -7,6 +7,7 @@ import { OverflowMenuHorizontal } from '@carbon/icons-react';
 import { OverflowMenu, OverflowMenuItem } from '@carbon/react';
 import { useMemo } from 'react';
 
+import { useRouteTransition } from '#contexts/TransitionContext/index.ts';
 import { useParamsFromUrl } from '#hooks/useParamsFromUrl.ts';
 import { isNotNull } from '#utils/helpers.ts';
 import { routes } from '#utils/router.ts';
@@ -15,6 +16,7 @@ import classes from './AgentNav.module.scss';
 
 export function AgentNav() {
   const { providerId: providerIdUrl } = useParamsFromUrl();
+  const { transitionTo } = useRouteTransition();
 
   const items = useMemo(() => {
     const providerId = String(providerIdUrl);
@@ -40,7 +42,7 @@ export function AgentNav() {
       flipped
     >
       {items.map((item) => (
-        <OverflowMenuItem key={item.label} itemText={item.label} href={item.href} />
+        <OverflowMenuItem key={item.label} itemText={item.label} onClick={() => transitionTo(item.href)} />
       ))}
     </OverflowMenu>
   );

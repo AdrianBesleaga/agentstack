@@ -4,7 +4,6 @@
  */
 
 'use client';
-
 import { Tab, TabList, TabPanel, TabPanels, Tabs } from '@carbon/react';
 import type { ComponentType } from 'react';
 import { useMemo } from 'react';
@@ -45,7 +44,7 @@ export function SettingsView() {
     <MainContent>
       <Container size="lg">
         <ViewStack>
-          <ViewHeader heading="Settings" />
+          <ViewHeader heading="Global settings" />
           <Tabs>
             <TabList>
               {items.map(({ title }) => (

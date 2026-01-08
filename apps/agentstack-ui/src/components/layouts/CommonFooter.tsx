@@ -4,35 +4,16 @@
  */
 
 'use client';
-import { Settings } from '@carbon/icons-react';
-import { Button } from '@carbon/react';
-
-import { UserNav } from '#components/Sidebar/UserNav.tsx';
-import { useApp } from '#contexts/App/index.ts';
-import { routes } from '#utils/router.ts';
+import { FooterNav } from '#components/Sidebar/FooterNav.tsx';
 
 import classes from './CommonFooter.module.scss';
 
 export function CommonFooter() {
-  const {
-    config: { isAuthEnabled },
-  } = useApp();
-
   return (
     <div className={classes.root}>
-      {isAuthEnabled ? (
-        <UserNav />
-      ) : (
-        <Button
-          href={routes.settings()}
-          kind="ghost"
-          size="sm"
-          renderIcon={Settings}
-          className={classes.settingsButton}
-        >
-          Settings
-        </Button>
-      )}
+      <div className={classes.nav}>
+        <FooterNav />
+      </div>
     </div>
   );
 }

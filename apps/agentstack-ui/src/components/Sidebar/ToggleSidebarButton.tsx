@@ -4,11 +4,10 @@
  */
 
 import { OpenPanelLeft, RightPanelClose, RightPanelOpen } from '@carbon/icons-react';
-import { Button } from '@carbon/react';
 
 import { useApp } from '#contexts/App/index.ts';
 
-import classes from './ToggleSidebarButton.module.scss';
+import { SidebarButton } from './SidebarButton';
 
 export function ToggleSidebarButton() {
   const {
@@ -19,14 +18,11 @@ export function ToggleSidebarButton() {
   } = useApp();
 
   return (
-    <Button className={classes.root} kind="ghost" size="sm" onClick={sidebarOpen ? closeSidebar : openSidebar}>
-      <div className={classes.icon}>
-        <OpenPanelLeft />
-
-        {sidebarOpen ? <RightPanelOpen /> : <RightPanelClose />}
-      </div>
-
-      <span className={classes.label}>{appName}</span>
-    </Button>
+    <SidebarButton
+      icon={OpenPanelLeft}
+      hoverIcon={sidebarOpen ? RightPanelOpen : RightPanelClose}
+      label={appName}
+      onClick={sidebarOpen ? closeSidebar : openSidebar}
+    />
   );
 }
