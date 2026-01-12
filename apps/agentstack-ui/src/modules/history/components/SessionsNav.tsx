@@ -5,7 +5,7 @@
 
 import { useMemo } from 'react';
 
-import { NavGroup } from '#components/Sidebar/NavGroup.tsx';
+import { NavGroup } from '#components/Navbar/NavGroup.tsx';
 import { useFetchNextPage } from '#hooks/useFetchNextPage.ts';
 import { useParamsFromUrl } from '#hooks/useParamsFromUrl.ts';
 import { useListAgents } from '#modules/agents/api/queries/useListAgents.ts';

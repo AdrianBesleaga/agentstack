@@ -5,6 +5,7 @@
 
 'use client';
 import { ArrowLeft } from '@carbon/icons-react';
+import { SkeletonText } from '@carbon/react';
 
 import { AppHeader } from '#components/layouts/AppHeader.tsx';
 import { TransitionLink } from '#components/TransitionLink/TransitionLink.tsx';
@@ -20,28 +21,32 @@ export function AgentHeader() {
   const { providerId, subRoute } = useParamsFromUrl();
   const { data: agent } = useAgent({ providerId });
 
+  if (!providerId) {
+    return null;
+  }
+
   return (
     <AppHeader>
       <div className={classes.root}>
-        {agent && (
-          <>
-            <h1 className={classes.agentName}>
-              {subRoute ? (
-                <TransitionLink href={routes.agentRun({ providerId: String(providerId) })} className={classes.backLink}>
-                  <ArrowLeft />
-                  {agent.name}
-                </TransitionLink>
-              ) : (
-                agent.name
-              )}
-            </h1>
+        <h1 className={classes.agentName}>
+          {agent ? (
+            subRoute ? (
+              <TransitionLink href={routes.agentRun({ providerId })} className={classes.backLink}>
+                <ArrowLeft />
+                {agent.name}
+              </TransitionLink>
+            ) : (
+              agent.name
+            )
+          ) : (
+            <SkeletonText />
+          )}
+        </h1>
 
-            <div className={classes.buttons}>
-              <AgentShareButton agent={agent} />
-              <AgentNav />
-            </div>
-          </>
-        )}
+        <div className={classes.buttons}>
+          <AgentShareButton providerId={providerId} />
+          <AgentNav />
+        </div>
       </div>
     </AppHeader>
   );

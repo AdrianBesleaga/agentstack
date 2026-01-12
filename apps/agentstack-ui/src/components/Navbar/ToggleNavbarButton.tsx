@@ -7,22 +7,22 @@ import { OpenPanelLeft, RightPanelClose, RightPanelOpen } from '@carbon/icons-re
 
 import { useApp } from '#contexts/App/index.ts';
 
-import { SidebarButton } from './SidebarButton';
+import { NavbarButton } from './NavbarButton';
 
-export function ToggleSidebarButton() {
+export function ToggleNavbarButton() {
   const {
     config: { appName },
     sidebarOpen,
-    openSidebar,
-    closeSidebar,
+    openNavbar,
+    closeNavbar,
   } = useApp();
 
   return (
-    <SidebarButton
+    <NavbarButton
       icon={OpenPanelLeft}
       hoverIcon={sidebarOpen ? RightPanelOpen : RightPanelClose}
       label={appName}
-      onClick={sidebarOpen ? closeSidebar : openSidebar}
+      onClick={sidebarOpen ? closeNavbar : openNavbar}
     />
   );
 }

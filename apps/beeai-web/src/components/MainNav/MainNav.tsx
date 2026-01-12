@@ -7,11 +7,9 @@
 
 import type { CarbonIconType } from '@carbon/icons-react';
 import { Button } from '@carbon/react';
+import { Tooltip, TransitionLink } from '@i-am-bee/agentstack-ui';
 import clsx from 'clsx';
 import type { ReactNode } from 'react';
-
-import { Tooltip } from '#components/Tooltip/Tooltip.tsx';
-import { TransitionLink } from '#components/TransitionLink/TransitionLink.tsx';
 
 import classes from './MainNav.module.scss';
 

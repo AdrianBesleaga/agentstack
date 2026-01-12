@@ -7,13 +7,13 @@ import clsx from 'clsx';
 
 import { SessionsNav } from '#modules/history/components/SessionsNav.tsx';
 
-import classes from './SidebarMainContent.module.scss';
+import classes from './NavbarMainContent.module.scss';
 
 interface Props {
   className?: string;
 }
 
-export function SidebarMainContent({ className }: Props) {
+export function NavbarMainContent({ className }: Props) {
   return (
     <div className={clsx(classes.root, className)}>
       <SessionsNav className={classes.sessions} />

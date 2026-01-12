@@ -15,8 +15,8 @@ interface AppContextValue {
   config: RuntimeConfig;
   sidebarOpen: boolean;
   activeSidePanel: SidePanelVariant | null;
-  openSidebar: () => void;
-  closeSidebar: () => void;
+  openNavbar: () => void;
+  closeNavbar: () => void;
   openSidePanel: (variant: SidePanelVariant) => void;
   closeSidePanel: () => void;
 }

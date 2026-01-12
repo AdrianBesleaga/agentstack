@@ -11,12 +11,12 @@ import { useApp } from '#contexts/App/index.ts';
 import { fadeProps } from '#utils/fadeProps.ts';
 
 export function SessionsButton() {
-  const { openSidebar } = useApp();
+  const { openNavbar } = useApp();
 
   return (
     <AnimatePresence>
       <motion.div {...fadeProps()}>
-        <IconButton label="Sessions" size="sm" kind="ghost" autoAlign align="right" onClick={() => openSidebar()}>
+        <IconButton label="Sessions" size="sm" kind="ghost" autoAlign align="right" onClick={() => openNavbar()}>
           <RecentlyViewed />
         </IconButton>
       </motion.div>

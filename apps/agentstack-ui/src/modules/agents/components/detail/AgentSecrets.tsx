@@ -31,8 +31,6 @@ export function AgentSecrets() {
     [demandedSecrets],
   );
 
-  console.log({ defaultValues, demandedSecrets });
-
   const {
     register,
     handleSubmit,
@@ -73,7 +71,7 @@ export function AgentSecrets() {
                     placeholder="Add secret"
                     showPasswordLabel={`Show ${key}`}
                     hidePasswordLabel={`Hide ${key}`}
-                    {...register(key, { required: true })}
+                    {...register(key)}
                   />
                 ) : (
                   <TextInputSkeleton />

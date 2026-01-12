@@ -14,18 +14,18 @@ import { useParamsFromUrl } from '#hooks/useParamsFromUrl.ts';
 import { routes } from '#utils/router.ts';
 
 import { FooterNav } from './FooterNav';
+import classes from './Navbar.module.scss';
+import { NavbarButton } from './NavbarButton';
+import { NavbarMainContent } from './NavbarMainContent';
 import NewSession from './NewSession.svg';
 import { SessionsButton } from './SessionsButton';
-import classes from './Sidebar.module.scss';
-import { SidebarButton } from './SidebarButton';
-import { SidebarMainContent } from './SidebarMainContent';
-import { ToggleSidebarButton } from './ToggleSidebarButton';
+import { ToggleNavbarButton } from './ToggleNavbarButton';
 
 interface Props {
   className?: string;
 }
 
-export function Sidebar({ className }: Props) {
+export function Navbar({ className }: Props) {
   const ref = useRef<HTMLDivElement>(null);
   const [isAnimating, setIsAnimating] = useState(false);
 
@@ -62,6 +62,10 @@ export function Sidebar({ className }: Props) {
     [checkTransition],
   );
 
+  if (!providerId) {
+    return null;
+  }
+
   return (
     <div
       ref={ref}
@@ -74,19 +78,19 @@ export function Sidebar({ className }: Props) {
     >
       <div className={classes.content}>
         <header className={classes.stack}>
-          <ToggleSidebarButton />
+          <ToggleNavbarButton />
 
-          <SidebarButton
+          <NavbarButton
             icon={NewSession}
             label="New Session"
             onClick={() => {
-              router.push(routes.agentRun({ providerId: String(providerId) }));
+              router.push(routes.agentRun({ providerId }));
             }}
           />
         </header>
 
         <div className={classes.body}>
-          {sidebarOpen ? <SidebarMainContent className={classes.mainContent} /> : <SessionsButton />}
+          {sidebarOpen ? <NavbarMainContent className={classes.mainContent} /> : <SessionsButton />}
         </div>
 
         <footer className={classes.stack}>

@@ -4,7 +4,7 @@
  */
 
 'use client';
-import { FooterNav } from '#components/Sidebar/FooterNav.tsx';
+import { FooterNav } from '#components/Navbar/FooterNav.tsx';
 
 import classes from './CommonFooter.module.scss';
 

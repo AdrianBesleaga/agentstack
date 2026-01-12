@@ -6,12 +6,12 @@
 'use client';
 import { Settings } from '@carbon/icons-react';
 
-import { UserNav } from '#components/Sidebar/UserNav.tsx';
+import { UserNav } from '#components/Navbar/UserNav.tsx';
 import { useApp } from '#contexts/App/index.ts';
 import { useParamsFromUrl } from '#hooks/useParamsFromUrl.ts';
 import { routes } from '#utils/router.ts';
 
-import { SidebarButton } from './SidebarButton';
+import { NavbarButton } from './NavbarButton';
 
 export function FooterNav() {
   const {
@@ -23,6 +23,6 @@ export function FooterNav() {
   return isAuthEnabled ? (
     <UserNav />
   ) : (
-    <SidebarButton icon={Settings} label="Settings" href={routes.settings({ providerId })} />
+    <NavbarButton icon={Settings} label="Settings" href={routes.settings({ providerId })} />
   );
 }

@@ -15,11 +15,14 @@ import { routes } from '#utils/router.ts';
 import classes from './AgentNav.module.scss';
 
 export function AgentNav() {
-  const { providerId: providerIdUrl } = useParamsFromUrl();
+  const { providerId } = useParamsFromUrl();
   const { transitionTo } = useRouteTransition();
 
   const items = useMemo(() => {
-    const providerId = String(providerIdUrl);
+    if (!providerId) {
+      return null;
+    }
+
     return [
       {
         label: 'Settings',
@@ -30,7 +33,11 @@ export function AgentNav() {
         href: routes.agentAbout({ providerId }),
       },
     ].filter(isNotNull);
-  }, [providerIdUrl]);
+  }, [providerId]);
+
+  if (!items) {
+    return null;
+  }
 
   return (
     <OverflowMenu

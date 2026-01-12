@@ -9,7 +9,7 @@ import { signOut } from 'next-auth/react';
 import type { PropsWithChildren } from 'react';
 import { useMemo } from 'react';
 
-import UserAvatar from '#components/Sidebar/UserAvatar.tsx';
+import UserAvatar from '#components/Navbar/UserAvatar.tsx';
 import { useRouteTransition } from '#contexts/TransitionContext/index.ts';
 import { useParamsFromUrl } from '#hooks/useParamsFromUrl.ts';
 import { routes } from '#utils/router.ts';

@@ -18,6 +18,10 @@
   min-inline-size: 0;
   font-weight: 600;
   margin: 0;
+
+  :global(.cds--skeleton__text) {
+    min-inline-size: 8rem;
+  }
 }
 
 .backLink {
