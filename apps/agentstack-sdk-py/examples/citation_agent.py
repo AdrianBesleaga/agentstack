@@ -33,9 +33,9 @@ async def example_agent(
     await context.store(input)
 
     # Simulate researching multiple sources
-    research_text = """Based on recent research, artificial intelligence has made significant progress in natural 
-language processing. Studies show that transformer models have revolutionized the field, and 
-recent developments in large language models demonstrate remarkable capabilities in understanding 
+    research_text = """Based on recent research, artificial intelligence has made significant progress in natural
+language processing. Studies show that transformer models have revolutionized the field, and
+recent developments in large language models demonstrate remarkable capabilities in understanding
 and generating human-like text."""
 
     # Create citations for the sources
@@ -63,6 +63,7 @@ and generating human-like text."""
     )
     yield message
     await context.store(message)
+
 
 def run():
     server.run(

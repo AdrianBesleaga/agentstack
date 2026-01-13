@@ -6,6 +6,10 @@ from typing import Annotated
 
 from a2a.types import Message
 
+from agentstack_sdk.a2a.extensions import (
+    AgentDetail,
+    AgentDetailContributor,
+)
 from agentstack_sdk.a2a.extensions.auth.secrets import (
     SecretDemand,
     SecretsExtensionServer,
@@ -13,11 +17,6 @@ from agentstack_sdk.a2a.extensions.auth.secrets import (
     SecretsServiceExtensionParams,
 )
 from agentstack_sdk.server import Server
-from agentstack_sdk.a2a.extensions import (
-    AgentDetail,
-    AgentDetailContributor,
-)
-
 
 server = Server()
 
@@ -25,10 +24,10 @@ server = Server()
 @server.agent(
     name="Agent with secrets",
     detail=AgentDetail(
-      interaction_mode="multi-turn",
-      author=AgentDetailContributor(name="BeeAI contributors"),
-      contributors=[AgentDetailContributor(name="John"), AgentDetailContributor(name="Kate")],
-      license="Apache 2.0",
+        interaction_mode="multi-turn",
+        author=AgentDetailContributor(name="BeeAI contributors"),
+        contributors=[AgentDetailContributor(name="John"), AgentDetailContributor(name="Kate")],
+        license="Apache 2.0",
     ),
 )
 async def secrets_agent(

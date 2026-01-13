@@ -50,13 +50,6 @@
   @include line-clamp();
 }
 
-.subHeading {
-  @include line-clamp();
-  font-size: rem(12px);
-  line-height: math.div(14, 12);
-  color: $text-secondary;
-}
-
 .options {
   flex-shrink: 0;
   display: none;

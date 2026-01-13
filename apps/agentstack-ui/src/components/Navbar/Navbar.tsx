@@ -32,7 +32,7 @@ export function Navbar({ className }: Props) {
   const router = useRouter();
   const { providerId } = useParamsFromUrl();
 
-  const { sidebarOpen } = useApp();
+  const { navbarOpen } = useApp();
 
   const checkTransition = useCallback((event: TransitionEvent) => {
     const {
@@ -70,7 +70,7 @@ export function Navbar({ className }: Props) {
     <div
       ref={ref}
       className={clsx(classes.root, className, {
-        [classes.isOpen]: sidebarOpen,
+        [classes.isOpen]: navbarOpen,
         [classes.isAnimating]: isAnimating,
       })}
       onTransitionStart={handleTransitionStart}
@@ -90,7 +90,8 @@ export function Navbar({ className }: Props) {
         </header>
 
         <div className={classes.body}>
-          {sidebarOpen ? <NavbarMainContent className={classes.mainContent} /> : <SessionsButton />}
+          <NavbarMainContent className={classes.mainContent} />
+          <SessionsButton className={classes.sessionsButton} />
         </div>
 
         <footer className={classes.stack}>

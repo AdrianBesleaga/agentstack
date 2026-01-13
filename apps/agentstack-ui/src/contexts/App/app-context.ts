@@ -13,7 +13,7 @@ export const AppContext = createContext<AppContextValue | undefined>(undefined);
 
 interface AppContextValue {
   config: RuntimeConfig;
-  sidebarOpen: boolean;
+  navbarOpen: boolean;
   activeSidePanel: SidePanelVariant | null;
   openNavbar: () => void;
   closeNavbar: () => void;

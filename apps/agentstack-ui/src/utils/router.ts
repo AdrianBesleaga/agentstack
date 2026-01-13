@@ -11,7 +11,7 @@ export const routes = {
   signIn: ({ callbackUrl }: { callbackUrl?: string } = {}) =>
     `/signin${callbackUrl ? `?callbackUrl=${encodeURIComponent(callbackUrl)}` : ''}`,
   notFound: () => '/not-found' as const,
-  agentRoute: ({ providerId }: AgentRouteParams) => `/${encodeURIComponent(providerId)}`,
+  agentRoute: ({ providerId }: AgentRouteParams) => `/agent/${encodeURIComponent(providerId)}`,
   agentRun: ({ providerId, contextId }: AgentRunParams) =>
     `${routes.agentRoute({ providerId })}${contextId ? `/c/${encodeURIComponent(contextId)}` : ''}`,
   agentSettings: (params: AgentRouteParams) => `${routes.agentRoute(params)}/settings`,

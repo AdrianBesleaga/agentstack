@@ -36,6 +36,7 @@ $padding: $spacing-05;
 }
 
 .body {
+  position: relative;
   display: flex;
   padding-inline: $padding;
   margin-inline: -$padding;
@@ -60,6 +61,16 @@ $padding: $spacing-05;
     opacity: 0;
     visibility: hidden;
     transition-timing-function: motion(entrance, expressive);
+  }
+}
+
+.sessionsButton {
+  opacity: 1;
+  position: absolute;
+
+  .root.isOpen & {
+    opacity: 0;
+    visibility: hidden;
   }
 }
 

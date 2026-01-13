@@ -19,7 +19,7 @@ interface Props {
 
 export function NavbarButton({ onClick, href, icon: Icon, hoverIcon: HoverIcon, label }: Props) {
   return (
-    <Button className={classes.root} kind="ghost" size="sm" onClick={() => onClick?.()} href={href}>
+    <Button className={classes.root} kind="ghost" size="sm" onClick={onClick} href={href}>
       <div className={clsx(classes.icon, { [classes.withHoverIcon]: Boolean(HoverIcon) })}>
         <Icon />
 

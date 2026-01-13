@@ -6,6 +6,7 @@
 'use client';
 import { Link, Share } from '@carbon/icons-react';
 import { Button } from '@carbon/react';
+import { usePathname } from 'next/navigation';
 import { useCallback } from 'react';
 
 import { AppName } from '#components/AppName/AppName.tsx';
@@ -17,6 +18,7 @@ import classes from './CommonHeader.module.scss';
 
 export function CommonHeader() {
   const { addToast } = useToast();
+  const pathname = usePathname();
 
   const handleCopy = useCallback(() => {
     const url = `${window.location.origin}${routes.home()}`;
@@ -24,16 +26,20 @@ export function CommonHeader() {
     addToast({ title: 'Link copied to clipboard', icon: Link, timeout: 10_000 });
   }, [addToast]);
 
+  const isHome = pathname === routes.home();
+
   return (
     <AppHeader>
       <div className={classes.root}>
         <AppName withLink />
 
-        <div className={classes.right}>
-          <Button renderIcon={Share} size="sm" onClick={() => handleCopy()} kind="tertiary">
-            Share catalog
-          </Button>
-        </div>
+        {isHome && (
+          <div className={classes.right}>
+            <Button renderIcon={Share} size="sm" onClick={() => handleCopy()} kind="tertiary">
+              Share catalog
+            </Button>
+          </div>
+        )}
       </div>
     </AppHeader>
   );

@@ -20,9 +20,6 @@
   display: flex;
   align-items: center;
   gap: $spacing-02;
-  &:focus-visible {
-    outline: none;
-  }
   &:hover {
     text-decoration: underline;
   }

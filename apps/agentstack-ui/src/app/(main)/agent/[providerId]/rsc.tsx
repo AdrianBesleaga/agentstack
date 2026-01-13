@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-'server only';
+import 'server-only';
 
 import { notFound } from 'next/navigation';
 
@@ -15,6 +15,7 @@ import { readProvider } from '#modules/providers/api/index.ts';
 
 export async function fetchAgent(providerId: string) {
   let agent: Agent | undefined;
+
   try {
     const provider = await readProvider({ id: providerId });
     if (provider) {

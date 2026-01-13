@@ -12,7 +12,7 @@ import { NavbarButton } from './NavbarButton';
 export function ToggleNavbarButton() {
   const {
     config: { appName },
-    sidebarOpen,
+    navbarOpen,
     openNavbar,
     closeNavbar,
   } = useApp();
@@ -20,9 +20,9 @@ export function ToggleNavbarButton() {
   return (
     <NavbarButton
       icon={OpenPanelLeft}
-      hoverIcon={sidebarOpen ? RightPanelOpen : RightPanelClose}
+      hoverIcon={navbarOpen ? RightPanelOpen : RightPanelClose}
       label={appName}
-      onClick={sidebarOpen ? closeNavbar : openNavbar}
+      onClick={navbarOpen ? closeNavbar : openNavbar}
     />
   );
 }

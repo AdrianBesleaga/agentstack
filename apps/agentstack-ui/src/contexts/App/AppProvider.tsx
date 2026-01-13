@@ -14,7 +14,7 @@ interface Props {
 }
 
 export function AppProvider({ config, children }: PropsWithChildren<Props>) {
-  const [sidebarOpen, setNavbarOpen] = useState(true);
+  const [navbarOpen, setNavbarOpen] = useState(true);
   const [activeSidePanel, setActiveSidePanel] = useState<SidePanelVariant | null>(null);
 
   const openNavbar = useCallback(() => {
@@ -36,14 +36,14 @@ export function AppProvider({ config, children }: PropsWithChildren<Props>) {
   const contextValue = useMemo(
     () => ({
       config,
-      sidebarOpen,
+      navbarOpen,
       activeSidePanel,
       openNavbar,
       closeNavbar,
       openSidePanel,
       closeSidePanel,
     }),
-    [config, sidebarOpen, activeSidePanel, openNavbar, closeNavbar, openSidePanel, closeSidePanel],
+    [config, navbarOpen, activeSidePanel, openNavbar, closeNavbar, openSidePanel, closeSidePanel],
   );
 
   return <AppContext.Provider value={contextValue}>{children}</AppContext.Provider>;

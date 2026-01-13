@@ -14,8 +14,8 @@ interface Props {
 export function AgentSection({ title, children }: PropsWithChildren<Props>) {
   return (
     <div className={classes.root}>
-      <h2>{title}</h2>
-      {children}
+      <h2 className={classes.heading}>{title}</h2>
+      <div>{children}</div>
     </div>
   );
 }

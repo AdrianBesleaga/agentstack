@@ -11,46 +11,42 @@ import { MainContent } from '#components/layouts/MainContent.tsx';
 import { ViewHeader } from '#components/ViewHeader/ViewHeader.tsx';
 import { ViewStack } from '#components/ViewStack/ViewStack.tsx';
 import type { Agent } from '#modules/agents/api/types.ts';
-import { useBuildA2AClient } from '#modules/runs/api/queries/useBuildA2AClient.ts';
+import { PlatformContextProvider } from '#modules/platform-context/contexts/PlatformContextProvider.tsx';
+import { A2AClientProvider } from '#modules/runs/contexts/a2a-client/A2AClientProvider.tsx';
 import { AgentSecretsProvider } from '#modules/runs/contexts/agent-secrets/AgentSecretsProvider.tsx';
 
 import { agentDetailFadeProps } from './AgentDetailView';
 import { AgentSecrets } from './AgentSecrets';
 import { AgentSection } from './AgentSection';
-import classes from './AgentSettingsView.module.scss';
 
 interface Props {
   agent: Agent;
 }
 
 export function AgentSettingsView({ agent }: Props) {
-  const { agentClient } = useBuildA2AClient({
-    providerId: agent.provider.id,
-  });
-
-  if (!agentClient) {
-    return null;
-  }
-
   return (
-    <AgentSecretsProvider agent={agent} agentClient={agentClient}>
-      <MainContent>
-        <Container size="sm" className={classes.root}>
-          <ViewStack>
-            <AnimatePresence>
-              <motion.div {...agentDetailFadeProps} key="header">
-                <ViewHeader heading="Agent settings" />
-              </motion.div>
+    <PlatformContextProvider>
+      <A2AClientProvider agent={agent}>
+        <AgentSecretsProvider agent={agent}>
+          <MainContent>
+            <Container size="sm">
+              <ViewStack>
+                <AnimatePresence>
+                  <motion.div {...agentDetailFadeProps} key="header">
+                    <ViewHeader heading="Agent settings" />
+                  </motion.div>
 
-              <motion.div {...agentDetailFadeProps} key="secrets">
-                <AgentSection title="Secrets">
-                  <AgentSecrets />
-                </AgentSection>
-              </motion.div>
-            </AnimatePresence>
-          </ViewStack>
-        </Container>
-      </MainContent>
-    </AgentSecretsProvider>
+                  <motion.div {...agentDetailFadeProps} key="secrets">
+                    <AgentSection title="Secrets">
+                      <AgentSecrets />
+                    </AgentSection>
+                  </motion.div>
+                </AnimatePresence>
+              </ViewStack>
+            </Container>
+          </MainContent>
+        </AgentSecretsProvider>
+      </A2AClientProvider>
+    </PlatformContextProvider>
   );
 }

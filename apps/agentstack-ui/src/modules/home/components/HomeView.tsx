@@ -8,7 +8,6 @@ import { MainContent } from '#components/layouts/MainContent.tsx';
 import { AgentsList } from '#modules/agents/components/cards/AgentsList.tsx';
 import { fetchProviders } from '#modules/providers/api/index.ts';
 
-import { HomeHeading } from './HomeHeading';
 import classes from './HomeView.module.scss';
 
 export async function HomeView() {
@@ -17,7 +16,7 @@ export async function HomeView() {
   return (
     <MainContent spacing="sm">
       <Container className={classes.root}>
-        <HomeHeading />
+        <h1 className={classes.heading}>Agents</h1>
 
         <AgentsList initialData={initialData} />
       </Container>
