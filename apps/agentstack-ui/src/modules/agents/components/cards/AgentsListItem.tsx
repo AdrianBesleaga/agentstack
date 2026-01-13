@@ -37,7 +37,7 @@ export function AgentsListItem({ agent }: Props) {
 
 AgentsListItem.Skeleton = function AgentsListItemSkeleton() {
   return (
-    <article className={clsx(classes.root, classes.skeleton)}>
+    <article className={clsx(classes.root)}>
       <SkeletonText className={classes.link} />
     </article>
   );

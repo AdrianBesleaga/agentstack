@@ -72,6 +72,9 @@ $max-inline-size: rem(608px);
   > *:not(.text) {
     max-inline-size: $max-inline-size;
   }
+  > .text {
+    max-inline-size: auto;
+  }
 }
 
 .statusBar {
