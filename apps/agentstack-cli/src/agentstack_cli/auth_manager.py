@@ -107,8 +107,8 @@ class AuthManager:
                         "refresh_token": token.refresh_token,
                         "scope": token.scope,
                         "client_id": client_id,
-                        "client_secret": client_secret,
-                    },
+                    }
+                    | ({"client_secret": client_secret} if client_secret else {}),
                 )
                 resp.raise_for_status()
                 new_token = resp.json()

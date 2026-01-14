@@ -28,6 +28,7 @@ from agentstack_sdk.a2a.extensions.services.platform import (
     PlatformApiExtensionSpec,
 )
 from agentstack_sdk.a2a.types import AgentArtifact, AgentMessage
+from agentstack_sdk.platform import PlatformClient
 from agentstack_sdk.server import Server
 from agentstack_sdk.server.context import RunContext
 from agentstack_sdk.server.middleware.platform_auth_backend import PlatformAuthBackend
@@ -286,6 +287,7 @@ def serve():
             host=os.getenv("HOST", "127.0.0.1"),
             port=int(os.getenv("PORT", 8000)),
             configure_telemetry=True,
+            self_registration_client_factory=lambda: PlatformClient(auth=("admin", "admin")),
             context_store=PlatformContextStore(),
             auth_backend=PlatformAuthBackend(),
         )

@@ -117,7 +117,6 @@ oidc:
   default_new_user_role: "user"
   admin_emails:
     - admin@example.com
-  nextauth_trust_host: true
   nextauth_secret: "<To generate a random string, you can use the Auth.js CLI: npx auth secret>"
   nextauth_url: "http://localhost:8336"
   validate_audience: false
@@ -226,8 +225,9 @@ mise run agentstack-server:dev:delete
 To run and develop agentstack-server tests locally use `mise run agentstack-server:dev:start` from above.
 
 > Note:
-> - Some tests require additional settings (e.g. enabling authentication), see section for tests in `template.env` for more details.
-> - Tests will drop your database - you may need to add agents again or reconfigure model
+>
+> * Some tests require additional settings (e.g. enabling authentication), see section for tests in `template.env` for more details.
+> * Tests will drop your database - you may need to add agents again or reconfigure model
 
 Locally, the default model for tests is configured in `apps/agentstack-server/tests/conftest.py` (`llama3.1:8b` from ollama).
 Make sure to have this model running locally.

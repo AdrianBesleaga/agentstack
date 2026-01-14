@@ -1,4 +1,4 @@
-{{-  if and .Values.auth.enabled .Values.auth.oidc.enabled -}}
+{{-  if and .Values.ui.enabled .Values.auth.enabled .Values.auth.enabled -}}
 apiVersion: v1
 kind: Secret
 type: Opaque
@@ -9,5 +9,5 @@ metadata:
     app: agentstack-ui
 stringData:
   providers.json: |
-    {{- toJson .Values.auth.oidc.providers | nindent 4 -}}
+    {{ .Values.auth.providers | toJson }}
 {{- end }}
