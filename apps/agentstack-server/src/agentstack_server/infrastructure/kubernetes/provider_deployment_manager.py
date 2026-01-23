@@ -13,7 +13,7 @@ from contextlib import asynccontextmanager, suppress
 from datetime import timedelta
 from enum import StrEnum
 from pathlib import Path
-from typing import Any, Final
+from typing import Any, Final, Literal
 from uuid import UUID
 
 import anyio
@@ -71,11 +71,10 @@ class KubernetesProviderDeploymentManager(IProviderDeploymentManager):
         template = self._templates[kind]
         return yaml.safe_load(Template(template).render(**variables))
 
-    def _get_k8s_name(self, provider_id: UUID, kind: TemplateKind | None = None):
-        return f"agentstack-provider-{provider_id}" + (f"-{kind}" if kind else "")
-
-    def _get_probe_k8s_name(self, probe_id: UUID, kind: TemplateKind | None = None):
-        return f"agentstack-probe-{probe_id}" + (f"-{kind}" if kind else "")
+    def _get_k8s_name(
+        self, prefix: Literal["provider", "probe"], resource_id: UUID, kind: TemplateKind | None = None
+    ) -> str:
+        return f"agentstack-{prefix}-{resource_id}" + (f"-{kind}" if kind else "")
 
     def _get_provider_id_from_name(self, name: str, kind: TemplateKind | None = None) -> UUID:
         pattern = rf"agentstack-provider-([0-9a-f-]+)-{kind}$" if kind else r"agentstack-provider-([0-9a-f-]+)$"
@@ -84,42 +83,83 @@ class KubernetesProviderDeploymentManager(IProviderDeploymentManager):
             return UUID(provider_id)
         raise ValueError(f"Invalid provider name format: {name}")
 
+    async def _render_deployment_resources(
+        self,
+        *,
+        api: kr8s.asyncio.Api,
+        resource_id: UUID,
+        image: str,
+        env: dict[str, str],
+        prefix: Literal["provider", "probe"],
+    ) -> tuple[Service, Secret, dict[str, Any]]:
+        label = self._get_k8s_name(prefix, resource_id)
+
+        service = Service(
+            await self._render_template(
+                TemplateKind.SVC,
+                provider_service_name=self._get_k8s_name(prefix, resource_id, kind=TemplateKind.SVC),
+                provider_app_label=label,
+            ),
+            api=api,
+        )
+        secret = Secret(
+            await self._render_template(
+                TemplateKind.SECRET,
+                provider_secret_name=self._get_k8s_name(prefix, resource_id, TemplateKind.SECRET),
+                provider_app_label=label,
+                secret_data={key: base64.b64encode(value.encode()).decode() for key, value in env.items()},
+            ),
+            api=api,
+        )
+        deployment_manifest = await self._render_template(
+            TemplateKind.DEPLOY,
+            provider_deployment_name=self._get_k8s_name(prefix, resource_id, TemplateKind.DEPLOY),
+            provider_app_label=label,
+            image=image,
+            provider_secret_name=self._get_k8s_name(prefix, resource_id, TemplateKind.SECRET),
+        )
+        return service, secret, deployment_manifest
+
+    async def _create_resources_with_rollback(
+        self,
+        *,
+        service: Service,
+        secret: Secret,
+        deployment: Deployment,
+    ) -> None:
+        try:
+            await secret.create()
+            await service.create()
+            await deployment.create()
+            await deployment.adopt(service)
+            await deployment.adopt(secret)
+        except Exception as ex:
+            logger.error("Failed to create deployment", exc_info=ex)
+            with suppress(Exception):
+                await secret.delete()
+            with suppress(Exception):
+                await service.delete()
+            with suppress(Exception):
+                await deployment.delete()
+            raise
+
     async def create_or_replace(self, *, provider: Provider, env: dict[str, str] | None = None) -> bool:
         if not provider.managed:
             raise ValueError("Attempted to update provider not managed by Kubernetes")
 
         async with self.api() as api:
-            label = self._get_k8s_name(provider.id)
-
-            service = Service(
-                await self._render_template(
-                    TemplateKind.SVC,
-                    provider_service_name=self._get_k8s_name(provider.id, kind=TemplateKind.SVC),
-                    provider_app_label=label,
-                ),
-                api=api,
-            )
             env = {
                 **(env or {}),
                 **global_provider_variables(provider_url=await self.get_provider_url(provider_id=provider.id)),
             }
-            secret = Secret(
-                await self._render_template(
-                    TemplateKind.SECRET,
-                    provider_secret_name=self._get_k8s_name(provider.id, TemplateKind.SECRET),
-                    provider_app_label=label,
-                    secret_data={key: base64.b64encode(value.encode()).decode() for key, value in env.items()},
-                ),
+            service, secret, deployment_manifest = await self._render_deployment_resources(
                 api=api,
+                resource_id=provider.id,
+                image=str(provider.source.root),
+                env=env,
+                prefix="provider",
             )
 
-            deployment_manifest = await self._render_template(
-                TemplateKind.DEPLOY,
-                provider_deployment_name=self._get_k8s_name(provider.id, TemplateKind.DEPLOY),
-                provider_app_label=label,
-                image=str(provider.source.root),
-                provider_secret_name=self._get_k8s_name(provider.id, TemplateKind.SECRET),
-            )
             combined_manifest = json.dumps(
                 {"service": service.raw, "secret": secret.raw, "deployment": deployment_manifest}
             )
@@ -134,33 +174,20 @@ class KubernetesProviderDeploymentManager(IProviderDeploymentManager):
                         if existing_deployment.replicas == 0:
                             await deployment.scale(1)
                             return True
-                        return False  # Deployment was not modified
+                        return False
                     logger.info(f"Recreating deployment {deployment.metadata.name} due to configuration change")
                     await self.delete(provider_id=provider.id)
                 except kr8s.NotFoundError:
                     logger.info(f"Creating new deployment {deployment.metadata.name}")
-                try:
-                    await secret.create()
-                    await service.create()
-                    await deployment.create()
-                    await deployment.adopt(service)
-                    await deployment.adopt(secret)
-                except Exception as ex:
-                    logger.error("Failed to create provider", exc_info=ex)
-                    # Try to revert changes already made
-                    with suppress(Exception):
-                        await secret.delete()
-                    with suppress(Exception):
-                        await service.delete()
-                    with suppress(Exception):
-                        await deployment.delete()
-                    raise
+                await self._create_resources_with_rollback(service=service, secret=secret, deployment=deployment)
                 return True
 
     async def delete(self, *, provider_id: UUID) -> None:
         with suppress(kr8s.NotFoundError):
             async with self.api() as api:
-                deploy = await Deployment.get(name=self._get_k8s_name(provider_id, TemplateKind.DEPLOY), api=api)
+                deploy = await Deployment.get(
+                    name=self._get_k8s_name("provider", provider_id, TemplateKind.DEPLOY), api=api
+                )
                 await deploy.delete(propagation_policy="Foreground", force=True)
                 await deploy.wait(["delete"])
 
@@ -194,17 +221,23 @@ class KubernetesProviderDeploymentManager(IProviderDeploymentManager):
 
     async def scale_down(self, *, provider_id: UUID) -> None:
         async with self.api() as api:
-            deploy = await Deployment.get(name=self._get_k8s_name(provider_id, TemplateKind.DEPLOY), api=api)
+            deploy = await Deployment.get(
+                name=self._get_k8s_name("provider", provider_id, TemplateKind.DEPLOY), api=api
+            )
             await deploy.scale(0)
 
     async def scale_up(self, *, provider_id: UUID) -> None:
         async with self.api() as api:
-            deploy = await Deployment.get(name=self._get_k8s_name(provider_id, TemplateKind.DEPLOY), api=api)
+            deploy = await Deployment.get(
+                name=self._get_k8s_name("provider", provider_id, TemplateKind.DEPLOY), api=api
+            )
             await deploy.scale(1)
 
     async def wait_for_startup(self, *, provider_id: UUID, timeout: timedelta) -> None:  # noqa: ASYNC109 (the timeout actually corresponds to kubernetes timeout)
         async with self.api() as api:
-            deployment = await Deployment.get(name=self._get_k8s_name(provider_id, kind=TemplateKind.DEPLOY), api=api)
+            deployment = await Deployment.get(
+                name=self._get_k8s_name("provider", provider_id, kind=TemplateKind.DEPLOY), api=api
+            )
             await deployment.wait("condition=Available", timeout=int(timeout.total_seconds()))
             # For some reason the first request sometimes doesn't come through
             # (the service does not route immediately after deploy is available?)
@@ -248,71 +281,37 @@ class KubernetesProviderDeploymentManager(IProviderDeploymentManager):
             return states
 
     async def get_provider_url(self, *, provider_id: UUID) -> HttpUrl:
-        return HttpUrl(f"http://{self._get_k8s_name(provider_id, TemplateKind.SVC)}:8000")
+        return HttpUrl(f"http://{self._get_k8s_name('provider', provider_id, TemplateKind.SVC)}:8000")
 
     def _get_probe_url(self, probe_id: UUID) -> HttpUrl:
-        return HttpUrl(f"http://{self._get_probe_k8s_name(probe_id, TemplateKind.SVC)}:8000")
+        return HttpUrl(f"http://{self._get_k8s_name('probe', probe_id, TemplateKind.SVC)}:8000")
 
     async def create_probe_deployment(self, *, image: str, probe_id: UUID) -> None:
         async with self.api() as api:
-            label = self._get_probe_k8s_name(probe_id)
-
-            service = Service(
-                await self._render_template(
-                    TemplateKind.SVC,
-                    provider_service_name=self._get_probe_k8s_name(probe_id, kind=TemplateKind.SVC),
-                    provider_app_label=label,
-                ),
-                api=api,
-            )
             env = global_provider_variables(provider_url=self._get_probe_url(probe_id))
-            secret = Secret(
-                await self._render_template(
-                    TemplateKind.SECRET,
-                    provider_secret_name=self._get_probe_k8s_name(probe_id, TemplateKind.SECRET),
-                    provider_app_label=label,
-                    secret_data={key: base64.b64encode(value.encode()).decode() for key, value in env.items()},
-                ),
+            service, secret, deployment_manifest = await self._render_deployment_resources(
                 api=api,
-            )
-
-            deployment_manifest = await self._render_template(
-                TemplateKind.DEPLOY,
-                provider_deployment_name=self._get_probe_k8s_name(probe_id, TemplateKind.DEPLOY),
-                provider_app_label=label,
+                resource_id=probe_id,
                 image=image,
-                provider_secret_name=self._get_probe_k8s_name(probe_id, TemplateKind.SECRET),
+                env=env,
+                prefix="probe",
             )
             deployment = Deployment(deployment_manifest, api=api)
 
             async with self._create_lock:
-                try:
-                    await secret.create()
-                    await service.create()
-                    await deployment.create()
-                    await deployment.adopt(service)
-                    await deployment.adopt(secret)
-                except Exception as ex:
-                    logger.error("Failed to create probe deployment", exc_info=ex)
-                    with suppress(Exception):
-                        await secret.delete()
-                    with suppress(Exception):
-                        await service.delete()
-                    with suppress(Exception):
-                        await deployment.delete()
-                    raise
+                await self._create_resources_with_rollback(service=service, secret=secret, deployment=deployment)
 
     async def delete_probe_deployment(self, *, probe_id: UUID) -> None:
         with suppress(kr8s.NotFoundError):
             async with self.api() as api:
-                deploy = await Deployment.get(name=self._get_probe_k8s_name(probe_id, TemplateKind.DEPLOY), api=api)
+                deploy = await Deployment.get(name=self._get_k8s_name("probe", probe_id, TemplateKind.DEPLOY), api=api)
                 await deploy.delete(propagation_policy="Foreground", force=True)
                 await deploy.wait(["delete"])
 
     async def wait_for_probe_startup(self, *, probe_id: UUID, timeout: timedelta) -> None:  # noqa: ASYNC109
         async with self.api() as api:
             deployment = await Deployment.get(
-                name=self._get_probe_k8s_name(probe_id, kind=TemplateKind.DEPLOY), api=api
+                name=self._get_k8s_name("probe", probe_id, kind=TemplateKind.DEPLOY), api=api
             )
             await deployment.wait("condition=Available", timeout=int(timeout.total_seconds()))
             async for attempt in AsyncRetrying(
@@ -333,7 +332,7 @@ class KubernetesProviderDeploymentManager(IProviderDeploymentManager):
                 while True:
                     try:
                         deploy = await Deployment.get(
-                            name=self._get_k8s_name(provider_id, kind=TemplateKind.DEPLOY),
+                            name=self._get_k8s_name("provider", provider_id, kind=TemplateKind.DEPLOY),
                             api=api,
                         )
                         if pods := await deploy.pods():
@@ -376,7 +375,7 @@ class KubernetesProviderDeploymentManager(IProviderDeploymentManager):
                 async def stream_logs(pod: Pod):
                     async for line in pod.logs(follow=True):
                         logs_container.add_stdout(
-                            f"{pod.name.replace(self._get_k8s_name(provider_id, TemplateKind.DEPLOY), '')}: {line}"
+                            f"{pod.name.replace(self._get_k8s_name('provider', provider_id, TemplateKind.DEPLOY), '')}: {line}"
                         )
 
                 async with TaskGroup() as tg:

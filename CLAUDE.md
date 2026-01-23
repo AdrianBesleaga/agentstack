@@ -9,3 +9,5 @@ Repo: `i-am-bee/agentstack`
 ## Development rules
 
 - When working in agentstack-server make sure you always test the behaviour using the agentstack-server debugging approach
+- All testing and linting can be done via `mise run check`
+- Formatting can be fixed via `mise run fix`
