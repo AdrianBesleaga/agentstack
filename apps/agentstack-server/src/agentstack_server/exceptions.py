@@ -182,7 +182,10 @@ class GatewayError(PlatformError):
         super().__init__(message, status_code)
 
 
-class MissingAgentCardLabelError(ValueError):
+class MissingAgentCardLabelError(PlatformError):
     def __init__(self, image: str):
         self.image = image
-        super().__init__(f"Docker image labels must contain 'beeai.dev.agent.json': {image}")
+        super().__init__(
+            f"Docker image labels must contain 'beeai.dev.agent.json': {image}",
+            status.HTTP_422_UNPROCESSABLE_ENTITY,
+        )

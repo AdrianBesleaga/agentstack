@@ -31,7 +31,7 @@ from agentstack_server.domain.models.provider import (
 from agentstack_server.domain.models.registry import RegistryLocation
 from agentstack_server.domain.models.user import User, UserRole
 from agentstack_server.domain.repositories.env import EnvStoreEntity
-from agentstack_server.exceptions import InvalidProviderUpgradeError, ManifestLoadError, MissingAgentCardLabelError
+from agentstack_server.exceptions import InvalidProviderUpgradeError, ManifestLoadError
 from agentstack_server.service_layer.deployment_manager import (
     IProviderDeploymentManager,
 )
@@ -63,14 +63,7 @@ class ProviderService:
     ) -> ProviderWithState:
         try:
             if not agent_card:
-                try:
-                    agent_card = await location.load_agent_card()
-                except MissingAgentCardLabelError:
-                    if isinstance(location, DockerImageProviderLocation):
-                        logger.info("Missing Agent Card Label, fetching from container")
-                        agent_card = await self._fetch_agent_card_from_container(location)
-                    else:
-                        raise
+                agent_card = await location.load_agent_card()
             version_info = await location.get_version_info()
 
             if isinstance(origin, ResolvedGithubUrl):
@@ -217,13 +210,7 @@ class ProviderService:
 
             if not agent_card:
                 try:
-                    try:
-                        updated_provider.agent_card = await location.load_agent_card()
-                    except MissingAgentCardLabelError:
-                        if isinstance(location, DockerImageProviderLocation):
-                            updated_provider.agent_card = await self._fetch_agent_card_from_container(location)
-                        else:
-                            raise
+                    updated_provider.agent_card = await location.load_agent_card()
                 except ValueError as ex:
                     raise ManifestLoadError(
                         location=location, message=str(ex), status_code=HTTP_400_BAD_REQUEST
@@ -260,13 +247,7 @@ class ProviderService:
     ) -> ProviderWithState:
         try:
             if not agent_card:
-                try:
-                    agent_card = await location.load_agent_card()
-                except MissingAgentCardLabelError:
-                    if isinstance(location, DockerImageProviderLocation):
-                        agent_card = await self._fetch_agent_card_from_container(location)
-                    else:
-                        raise
+                agent_card = await location.load_agent_card()
             provider = Provider(
                 source=location,
                 origin=location.origin,
