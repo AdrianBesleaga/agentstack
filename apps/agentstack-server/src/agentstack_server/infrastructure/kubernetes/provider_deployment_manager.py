@@ -74,6 +74,9 @@ class KubernetesProviderDeploymentManager(IProviderDeploymentManager):
     def _get_k8s_name(self, provider_id: UUID, kind: TemplateKind | None = None):
         return f"agentstack-provider-{provider_id}" + (f"-{kind}" if kind else "")
 
+    def _get_probe_k8s_name(self, probe_id: UUID, kind: TemplateKind | None = None):
+        return f"agentstack-probe-{probe_id}" + (f"-{kind}" if kind else "")
+
     def _get_provider_id_from_name(self, name: str, kind: TemplateKind | None = None) -> UUID:
         pattern = rf"agentstack-provider-([0-9a-f-]+)-{kind}$" if kind else r"agentstack-provider-([0-9a-f-]+)$"
         if match := re.match(pattern, name):
@@ -242,6 +245,82 @@ class KubernetesProviderDeploymentManager(IProviderDeploymentManager):
 
     async def get_provider_url(self, *, provider_id: UUID) -> HttpUrl:
         return HttpUrl(f"http://{self._get_k8s_name(provider_id, TemplateKind.SVC)}:8000")
+
+    def _get_probe_url(self, probe_id: UUID) -> HttpUrl:
+        return HttpUrl(f"http://{self._get_probe_k8s_name(probe_id, TemplateKind.SVC)}:8000")
+
+    async def create_probe_deployment(self, *, image: str, probe_id: UUID) -> None:
+        async with self.api() as api:
+            label = self._get_probe_k8s_name(probe_id)
+
+            service = Service(
+                await self._render_template(
+                    TemplateKind.SVC,
+                    provider_service_name=self._get_probe_k8s_name(probe_id, kind=TemplateKind.SVC),
+                    provider_app_label=label,
+                ),
+                api=api,
+            )
+            env = global_provider_variables(provider_url=self._get_probe_url(probe_id))
+            secret = Secret(
+                await self._render_template(
+                    TemplateKind.SECRET,
+                    provider_secret_name=self._get_probe_k8s_name(probe_id, TemplateKind.SECRET),
+                    provider_app_label=label,
+                    secret_data={key: base64.b64encode(value.encode()).decode() for key, value in env.items()},
+                ),
+                api=api,
+            )
+
+            deployment_manifest = await self._render_template(
+                TemplateKind.DEPLOY,
+                provider_deployment_name=self._get_probe_k8s_name(probe_id, TemplateKind.DEPLOY),
+                provider_app_label=label,
+                image=image,
+                provider_secret_name=self._get_probe_k8s_name(probe_id, TemplateKind.SECRET),
+            )
+            deployment = Deployment(deployment_manifest, api=api)
+
+            async with self._create_lock:
+                try:
+                    await secret.create()
+                    await service.create()
+                    await deployment.create()
+                    await deployment.adopt(service)
+                    await deployment.adopt(secret)
+                except Exception as ex:
+                    logger.error("Failed to create probe deployment", exc_info=ex)
+                    with suppress(Exception):
+                        await secret.delete()
+                    with suppress(Exception):
+                        await service.delete()
+                    with suppress(Exception):
+                        await deployment.delete()
+                    raise
+
+    async def delete_probe_deployment(self, *, probe_id: UUID) -> None:
+        with suppress(kr8s.NotFoundError):
+            async with self.api() as api:
+                deploy = await Deployment.get(name=self._get_probe_k8s_name(probe_id, TemplateKind.DEPLOY), api=api)
+                await deploy.delete(propagation_policy="Foreground", force=True)
+                await deploy.wait(["delete"])
+
+    async def wait_for_probe_startup(self, *, probe_id: UUID, timeout: timedelta) -> None:  # noqa: ASYNC109
+        async with self.api() as api:
+            deployment = await Deployment.get(
+                name=self._get_probe_k8s_name(probe_id, kind=TemplateKind.DEPLOY), api=api
+            )
+            await deployment.wait("condition=Available", timeout=int(timeout.total_seconds()))
+            async for attempt in AsyncRetrying(
+                stop=stop_after_delay(timedelta(seconds=10)),
+                wait=wait_fixed(timedelta(seconds=0.5)),
+                retry=retry_if_exception_type(HTTPError),
+                reraise=True,
+            ):
+                with attempt:
+                    async with AsyncClient(base_url=str(self._get_probe_url(probe_id))) as client:
+                        resp = await client.get(AGENT_CARD_WELL_KNOWN_PATH, timeout=2)
+                        resp.raise_for_status()
 
     async def stream_logs(self, *, provider_id: UUID, logs_container: LogsContainer):
         try:

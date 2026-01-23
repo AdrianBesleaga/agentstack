@@ -8,15 +8,18 @@ import json
 import logging
 import uuid
 from collections.abc import AsyncIterator, Callable
+from contextlib import suppress
 from datetime import timedelta
 from uuid import UUID
 
-from a2a.types import AgentCard
+from a2a.types import AgentCard, AgentExtension
+from a2a.utils import AGENT_CARD_WELL_KNOWN_PATH
 from fastapi import HTTPException
+from httpx import AsyncClient
 from kink import inject
 from starlette.status import HTTP_400_BAD_REQUEST, HTTP_404_NOT_FOUND
 
-from agentstack_server.domain.constants import SELF_REGISTRATION_EXTENSION_URI
+from agentstack_server.domain.constants import AGENT_DETAIL_EXTENSION_URI, SELF_REGISTRATION_EXTENSION_URI
 from agentstack_server.domain.models.provider import (
     DockerImageProviderLocation,
     Provider,
@@ -28,7 +31,7 @@ from agentstack_server.domain.models.provider import (
 from agentstack_server.domain.models.registry import RegistryLocation
 from agentstack_server.domain.models.user import User, UserRole
 from agentstack_server.domain.repositories.env import EnvStoreEntity
-from agentstack_server.exceptions import InvalidProviderUpgradeError, ManifestLoadError
+from agentstack_server.exceptions import InvalidProviderUpgradeError, ManifestLoadError, MissingAgentCardLabelError
 from agentstack_server.service_layer.deployment_manager import (
     IProviderDeploymentManager,
 )
@@ -60,7 +63,14 @@ class ProviderService:
     ) -> ProviderWithState:
         try:
             if not agent_card:
-                agent_card = await location.load_agent_card()
+                try:
+                    agent_card = await location.load_agent_card()
+                except MissingAgentCardLabelError:
+                    if isinstance(location, DockerImageProviderLocation):
+                        logger.info("Missing Agent Card Label, fetching from container")
+                        agent_card = await self._fetch_agent_card_from_container(location)
+                    else:
+                        raise
             version_info = await location.get_version_info()
 
             if isinstance(origin, ResolvedGithubUrl):
@@ -93,6 +103,43 @@ class ProviderService:
             await uow.commit()
         [provider_response] = await self._get_providers_with_state(providers=[provider])
         return provider_response
+
+    async def _fetch_agent_card_from_container(self, location: DockerImageProviderLocation) -> AgentCard:
+        probe_id = uuid.uuid4()
+        try:
+            logger.info("Creating probe deployment")
+            await self._deployment_manager.create_probe_deployment(image=str(location.root), probe_id=probe_id)
+            logger.info("Waiting for probe to start")
+            await self._deployment_manager.wait_for_probe_startup(probe_id=probe_id, timeout=timedelta(minutes=1))
+            logger.info("Probe started")
+            url = self._deployment_manager._get_probe_url(probe_id=probe_id)
+            async with AsyncClient(base_url=str(url)) as client:
+                response = await client.get(AGENT_CARD_WELL_KNOWN_PATH, timeout=10)
+                response.raise_for_status()
+                agent_card = AgentCard.model_validate(response.json())
+                return self._inject_default_agent_detail_extension(agent_card, location)
+        finally:
+            with suppress(Exception):
+                await self._deployment_manager.delete_probe_deployment(probe_id=probe_id)
+
+    def _inject_default_agent_detail_extension(
+        self, agent_card: AgentCard, location: DockerImageProviderLocation
+    ) -> AgentCard:
+        if get_extension(agent_card, AGENT_DETAIL_EXTENSION_URI):
+            return agent_card
+
+        default_extension = AgentExtension(
+            uri=AGENT_DETAIL_EXTENSION_URI,
+            params={
+                "interaction_mode": "multi-turn",
+                "container_image_url": str(location.root),
+            },
+        )
+
+        extensions = list(agent_card.capabilities.extensions or [])
+        extensions.append(default_extension)
+        agent_card.capabilities.extensions = extensions
+        return agent_card
 
     async def patch_provider(
         self,
@@ -156,7 +203,13 @@ class ProviderService:
 
             if not agent_card:
                 try:
-                    updated_provider.agent_card = await location.load_agent_card()
+                    try:
+                        updated_provider.agent_card = await location.load_agent_card()
+                    except MissingAgentCardLabelError:
+                        if isinstance(location, DockerImageProviderLocation):
+                            updated_provider.agent_card = await self._fetch_agent_card_from_container(location)
+                        else:
+                            raise
                 except ValueError as ex:
                     raise ManifestLoadError(
                         location=location, message=str(ex), status_code=HTTP_400_BAD_REQUEST
@@ -193,7 +246,13 @@ class ProviderService:
     ) -> ProviderWithState:
         try:
             if not agent_card:
-                agent_card = await location.load_agent_card()
+                try:
+                    agent_card = await location.load_agent_card()
+                except MissingAgentCardLabelError:
+                    if isinstance(location, DockerImageProviderLocation):
+                        agent_card = await self._fetch_agent_card_from_container(location)
+                    else:
+                        raise
             provider = Provider(
                 source=location,
                 origin=location.origin,
