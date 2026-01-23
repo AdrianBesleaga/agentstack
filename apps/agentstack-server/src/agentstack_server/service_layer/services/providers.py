@@ -105,14 +105,28 @@ class ProviderService:
         return provider_response
 
     async def _fetch_agent_card_from_container(self, location: DockerImageProviderLocation) -> AgentCard:
-        probe_id = uuid.uuid4()
+        from a2a.types import AgentCapabilities
+
+        placeholder_card = AgentCard(
+            name="discovery",
+            description="",
+            url="",
+            version="",
+            capabilities=AgentCapabilities(),
+            default_input_modes=["text"],
+            default_output_modes=["text"],
+            skills=[],
+        )
+        temp_provider = Provider(
+            source=location,
+            origin=str(location.root),
+            created_by=uuid.UUID("00000000-0000-0000-0000-000000000000"),
+            agent_card=placeholder_card,
+        )
         try:
-            logger.info("Creating probe deployment")
-            await self._deployment_manager.create_probe_deployment(image=str(location.root), probe_id=probe_id)
-            logger.info("Waiting for probe to start")
-            await self._deployment_manager.wait_for_probe_startup(probe_id=probe_id, timeout=timedelta(minutes=1))
-            logger.info("Probe started")
-            url = self._deployment_manager._get_probe_url(probe_id=probe_id)
+            await self._deployment_manager.create_or_replace(provider=temp_provider)
+            await self._deployment_manager.wait_for_startup(provider_id=temp_provider.id, timeout=timedelta(minutes=1))
+            url = await self._deployment_manager.get_provider_url(provider_id=temp_provider.id)
             async with AsyncClient(base_url=str(url)) as client:
                 response = await client.get(AGENT_CARD_WELL_KNOWN_PATH, timeout=10)
                 response.raise_for_status()
@@ -120,7 +134,7 @@ class ProviderService:
                 return self._inject_default_agent_detail_extension(agent_card, location)
         finally:
             with suppress(Exception):
-                await self._deployment_manager.delete_probe_deployment(probe_id=probe_id)
+                await self._deployment_manager.delete(provider_id=temp_provider.id)
 
     def _inject_default_agent_detail_extension(
         self, agent_card: AgentCard, location: DockerImageProviderLocation
