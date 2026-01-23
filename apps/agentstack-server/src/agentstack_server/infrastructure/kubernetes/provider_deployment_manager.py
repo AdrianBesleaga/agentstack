@@ -172,7 +172,7 @@ class KubernetesProviderDeploymentManager(IProviderDeploymentManager):
                 with suppress(kr8s.NotFoundError):
                     await deploy.delete(propagation_policy="Foreground", force=True)
                     await deploy.wait(["delete"])
-                    logger.info(f"Deleted orphaned provider {deploy.metadata.name}")
+                    logger.info(f"Deleted orphaned deployment {deploy.metadata.name}")
             except Exception as ex:
                 errors.append(ex)
 
@@ -182,7 +182,11 @@ class KubernetesProviderDeploymentManager(IProviderDeploymentManager):
                 label_selector={"managedBy": "agentstack"},
                 api=api,
             ):
-                provider_id = self._get_provider_id_from_name(deployment.metadata.name, TemplateKind.DEPLOY)
+                name = deployment.metadata.name
+                if name.startswith("agentstack-probe-"):
+                    tg.create_task(_delete(deployment))
+                    continue
+                provider_id = self._get_provider_id_from_name(name, TemplateKind.DEPLOY)
                 if provider_id not in existing_providers:
                     tg.create_task(_delete(deployment))
         if errors:
