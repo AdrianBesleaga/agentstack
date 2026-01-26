@@ -21,7 +21,7 @@ class ProviderDiscovery(BaseModel):
     id: UUID = Field(default_factory=uuid4)
     created_at: AwareDatetime = Field(default_factory=utc_now)
     status: DiscoveryState
-    provider_id: UUID
+    docker_image: str
     created_by: UUID
     agent_card: AgentCard | None = None
     error_message: str | None = None

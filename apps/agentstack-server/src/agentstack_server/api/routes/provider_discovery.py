@@ -7,10 +7,10 @@ from uuid import UUID
 import fastapi
 from fastapi import Depends
 
-from agentstack_server.api.dependencies import RequiresPermissions
+from agentstack_server.api.dependencies import ProviderDiscoveryServiceDependency, RequiresPermissions
 from agentstack_server.api.schema.provider_discovery import CreateDiscoveryRequest
 from agentstack_server.domain.models.permissions import AuthorizedUser
-from agentstack_server.domain.models.provider_discovery import DiscoveryState, ProviderDiscovery
+from agentstack_server.domain.models.provider_discovery import ProviderDiscovery
 
 router = fastapi.APIRouter()
 
@@ -19,17 +19,15 @@ router = fastapi.APIRouter()
 async def create_provider_discovery(
     user: Annotated[AuthorizedUser, Depends(RequiresPermissions(providers={"write"}))],
     request: CreateDiscoveryRequest,
+    service: ProviderDiscoveryServiceDependency,
 ) -> ProviderDiscovery:
-    return ProviderDiscovery(
-        status=DiscoveryState.PENDING,
-        provider_id=request.provider_id,
-        created_by=user.user.id,
-    )
+    return await service.create_discovery(docker_image=request.docker_image, user=user.user)
 
 
 @router.get("/{id}")
 async def get_provider_discovery(
-    _: Annotated[AuthorizedUser, Depends(RequiresPermissions(providers={"read"}))],
+    user: Annotated[AuthorizedUser, Depends(RequiresPermissions(providers={"read"}))],
     id: UUID,
+    service: ProviderDiscoveryServiceDependency,
 ) -> ProviderDiscovery:
-    raise fastapi.HTTPException(status_code=404, detail="Not found")
+    return await service.get_discovery(discovery_id=id, user=user.user)
