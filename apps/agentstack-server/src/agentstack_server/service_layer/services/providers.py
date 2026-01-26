@@ -17,7 +17,7 @@ from a2a.utils import AGENT_CARD_WELL_KNOWN_PATH
 from fastapi import HTTPException
 from httpx import AsyncClient
 from kink import inject
-from starlette.status import HTTP_400_BAD_REQUEST, HTTP_404_NOT_FOUND
+from starlette.status import HTTP_400_BAD_REQUEST, HTTP_404_NOT_FOUND, HTTP_422_UNPROCESSABLE_CONTENT
 
 from agentstack_server.domain.constants import AGENT_DETAIL_EXTENSION_URI, SELF_REGISTRATION_EXTENSION_URI
 from agentstack_server.domain.models.provider import (
@@ -31,7 +31,7 @@ from agentstack_server.domain.models.provider import (
 from agentstack_server.domain.models.registry import RegistryLocation
 from agentstack_server.domain.models.user import User, UserRole
 from agentstack_server.domain.repositories.env import EnvStoreEntity
-from agentstack_server.exceptions import InvalidProviderUpgradeError, ManifestLoadError
+from agentstack_server.exceptions import InvalidProviderUpgradeError, ManifestLoadError, MissingAgentCardLabelError
 from agentstack_server.service_layer.deployment_manager import (
     IProviderDeploymentManager,
 )
@@ -84,6 +84,10 @@ class ProviderService:
 
         except ValueError as ex:
             raise ManifestLoadError(location=location, message=str(ex), status_code=HTTP_400_BAD_REQUEST) from ex
+        except MissingAgentCardLabelError as ex:
+            raise ManifestLoadError(
+                location=location, message=str(ex), status_code=HTTP_422_UNPROCESSABLE_CONTENT
+            ) from ex
         except Exception as ex:
             raise ManifestLoadError(location=location, message=str(ex)) from ex
 
