@@ -22,7 +22,16 @@ Open the terminal and run this command to install Agent Stack:
 sh -c "$(curl -LsSf https://raw.githubusercontent.com/i-am-bee/agentstack/install/install.sh)"
 ```
 
-This interactive script installs Agent Stack CLI, downloads and starts the platform, prompts you to configure your LLM API key, then launches the web interface.
+This one-line script installs Agent Stack and its required dependencies on your machine:
+1. Installs Python tooling (uv package manager and Python 3.13)
+2. Installs the Agent Stack CLI
+3. Creates a lightweight Linux VM with Kubernetes and deploys the Agent Stack platform (~2–3GB download):
+   - Server and web UI
+   - PostgreSQL database (with vector store)
+   - Object storage (SeaweedFS)
+4. Prompts you to configure your LLM API key and launches the web interface
+
+For full transparency, you can review the [install script](https://github.com/i-am-bee/agentstack/blob/install/install.sh), or see "Manual Install" below for a step-by-step breakdown.
 
 <Accordion title="Manual Install">
 
