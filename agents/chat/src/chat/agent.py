@@ -31,6 +31,7 @@ from agentstack_sdk.a2a.types import AgentArtifact, AgentMessage
 from agentstack_sdk.server import Server
 from agentstack_sdk.server.context import RunContext
 from agentstack_sdk.server.middleware.platform_auth_backend import PlatformAuthBackend
+from agentstack_sdk.server.memory import Memory, AsyncMemory
 from agentstack_sdk.server.store.platform_context_store import PlatformContextStore
 from beeai_framework.adapters.agentstack.backend.chat import AgentStackChatModel
 from beeai_framework.agents.requirement import RequirementAgent
@@ -150,134 +151,180 @@ async def chat(
     _p: Annotated[PlatformApiExtensionServer, PlatformApiExtensionSpec()],
 ):
     """Agent with memory and access to web search, Wikipedia, and weather."""
-    await context.store(input)
+    input_text = input.parts[0].root.text
+    # memory = await AsyncMemory.from_config()
+    memory = Memory.from_config()
 
-    # Send initial trajectory
-    yield trajectory.trajectory_metadata(title="Starting", content="Received your request")
+    # Reset memory
+    if input_text.lower() == "@reset":
+        memory.reset()
 
-    history = [message async for message in context.load_history() if isinstance(message, Message) and message.parts]
-    extracted_files = await extract_files(history=history)
+    if input_text.lower() == "@getall":
+        all_mems = memory.get_all(user_id="testuser",)
+        for mem in all_mems['results']:
+            print(mem)
+            print()
 
-    llm = AgentStackChatModel(parameters=ChatModelParameters(stream=True))
-    llm.set_context(llm_ext)
+    if input_text.lower().startswith("@add"):
+        input_text = input_text[4:].strip()
 
-    # Build dynamic instructions based on available files
-    base_instructions = dedent(
-        """\
-        You are a helpful AI assistant built on the BeeAI framework. You have access to various tools and capabilities to assist users effectively.
-
-        ## Core Behavior Guidelines:
-        - Always be helpful, accurate, and concise in your responses
-        - Maintain conversation context and refer to previous messages when relevant
-
-        ## Citation Requirements:
-        When using information from tools that provide URLs, you MUST cite sources using markdown format:
-        - Format: [descriptive text](URL)
-        - Place citations inline where information is referenced
-        - Use descriptive text that summarizes the source content
-
-        ## File Handling:
-        - When files are available, reference them by ID and filename
-        - Read file contents when users ask about uploaded documents
-        - Create files when users need downloadable content
-        {file_context}
-
-        ## Response Quality:
-        - Provide comprehensive, well-structured answers
-        - Break down complex topics into digestible sections
-        - Use appropriate formatting (headers, lists, code blocks) when helpful
-        - Always complete tasks fully before providing final answers
-        """
-    )
-
-    # Configure tools
-    tools: list[AnyTool] = [
-        WikipediaTool(),
-        OpenMeteoTool(),
-        DuckDuckGoSearchTool(),
-        FileCreatorTool(),
-    ]
-
-    if extracted_files:
-        # Dynamically created tool input schema based on real provided files ensures that small LLMs can't hallucinate the input
-        tools.append(FileReaderTool(extracted_files))
-
-        files_context = "\n\n## Currently Available Files:"
-        files_context += "\nThe user has uploaded the following files that you can access using the File Reader tool:"
-        for file in extracted_files:
-            files_context += f"\n- **{file.file.filename}** (ID: {file.file.id}) - Available at: {file.file.url}"
-        files_context += (
-            "\n\nWhen referencing these files, use their ID with the File Reader tool to access their content."
+        memory.add(
+            input_text,
+            user_id="testuser",
+            agent_id="chat",
+            infer=True,
+            metadata={"source": "user"},
         )
-        instructions = base_instructions.format(file_context=files_context)
-    else:
-        instructions = base_instructions.format(file_context="")
 
-    # Create agent
-    agent = RequirementAgent(
-        llm=llm,
-        tools=tools,
-        instructions=instructions,
-        middlewares=[GlobalTrajectoryMiddleware(included=[Tool])],
-    )
+        memory.add(
+            input_text,
+            user_id="testuser",
+            agent_id="chat",
+            infer=True,
+            metadata={"source": "user"},
+            memory_type="procedural_memory"
+        )
+    elif input_text.lower().startswith("@search"):
+        input_text = input_text[7:].strip()
+        res = memory.search(
+            input_text,
+            user_id="testuser",
+            agent_id="chat",
+        )
+        for mem in res['results']:
+            print(mem)
+            print()
 
-    final_answer: AssistantMessage | None = None
-    new_messages = [to_framework_message(item, extracted_files) for item in history]
+        print("----"*10)
 
-    try:
-        async for event, meta in agent.run(
-            new_messages,
-            expected_output=dedent("""\
-               Assemble and send the final answer to the user. When using information gathered from other tools that provided URL addresses, you MUST properly cite them using markdown citation format: [description](URL).
+    yield input_text[0]
+
+    # # Send initial trajectory
+    # yield trajectory.trajectory_metadata(title="Starting", content="Received your request")
+
+    # history = [message async for message in context.load_history() if isinstance(message, Message) and message.parts]
+    # extracted_files = await extract_files(history=history)
+
+    # llm = AgentStackChatModel(parameters=ChatModelParameters(stream=True))
+    # llm.set_context(llm_ext)
+
+    # # Build dynamic instructions based on available files
+    # base_instructions = dedent(
+    #     """\
+    #     You are a helpful AI assistant built on the BeeAI framework. You have access to various tools and capabilities to assist users effectively.
+
+    #     ## Core Behavior Guidelines:
+    #     - Always be helpful, accurate, and concise in your responses
+    #     - Maintain conversation context and refer to previous messages when relevant
+
+    #     ## Citation Requirements:
+    #     When using information from tools that provide URLs, you MUST cite sources using markdown format:
+    #     - Format: [descriptive text](URL)
+    #     - Place citations inline where information is referenced
+    #     - Use descriptive text that summarizes the source content
+
+    #     ## File Handling:
+    #     - When files are available, reference them by ID and filename
+    #     - Read file contents when users ask about uploaded documents
+    #     - Create files when users need downloadable content
+    #     {file_context}
+
+    #     ## Response Quality:
+    #     - Provide comprehensive, well-structured answers
+    #     - Break down complex topics into digestible sections
+    #     - Use appropriate formatting (headers, lists, code blocks) when helpful
+    #     - Always complete tasks fully before providing final answers
+    #     """
+    # )
+
+    # # Configure tools
+    # tools: list[AnyTool] = [
+    #     WikipediaTool(),
+    #     OpenMeteoTool(),
+    #     DuckDuckGoSearchTool(),
+    #     FileCreatorTool(),
+    # ]
+
+    # if extracted_files:
+    #     # Dynamically created tool input schema based on real provided files ensures that small LLMs can't hallucinate the input
+    #     tools.append(FileReaderTool(extracted_files))
+
+    #     files_context = "\n\n## Currently Available Files:"
+    #     files_context += "\nThe user has uploaded the following files that you can access using the File Reader tool:"
+    #     for file in extracted_files:
+    #         files_context += f"\n- **{file.file.filename}** (ID: {file.file.id}) - Available at: {file.file.url}"
+    #     files_context += (
+    #         "\n\nWhen referencing these files, use their ID with the File Reader tool to access their content."
+    #     )
+    #     instructions = base_instructions.format(file_context=files_context)
+    # else:
+    #     instructions = base_instructions.format(file_context="")
+
+    # # Create agent
+    # agent = RequirementAgent(
+    #     llm=llm,
+    #     tools=tools,
+    #     instructions=instructions,
+    #     middlewares=[GlobalTrajectoryMiddleware(included=[Tool])],
+    # )
+
+    # final_answer: AssistantMessage | None = None
+    # new_messages = [to_framework_message(item, extracted_files) for item in history]
+
+    # try:
+    #     async for event, meta in agent.run(
+    #         new_messages,
+    #         expected_output=dedent("""\
+    #            Assemble and send the final answer to the user. When using information gathered from other tools that provided URL addresses, you MUST properly cite them using markdown citation format: [description](URL).
     
-               # Citation Requirements:
-               - Use descriptive text that summarizes the source content
-               - Include the exact URL provided by the tool
-               - Place citations inline where the information is referenced
+    #            # Citation Requirements:
+    #            - Use descriptive text that summarizes the source content
+    #            - Include the exact URL provided by the tool
+    #            - Place citations inline where the information is referenced
     
-               # Examples:
-               - According to [OpenAI's latest announcement](https://example.com/gpt5), GPT-5 will be released next year.
-               - Recent studies show [AI adoption has increased by 67%](https://example.com/ai-study) in enterprise environments.
-               - Weather data indicates [temperatures will reach 25°C tomorrow](https://weather.example.com/forecast).
-               """),
-        ):
-            match event:
-                case RequirementAgentFinalAnswerEvent(delta=delta):
-                    yield delta
-                case RequirementAgentSuccessEvent(state=state):
-                    final_answer = state.answer
+    #            # Examples:
+    #            - According to [OpenAI's latest announcement](https://example.com/gpt5), GPT-5 will be released next year.
+    #            - Recent studies show [AI adoption has increased by 67%](https://example.com/ai-study) in enterprise environments.
+    #            - Weather data indicates [temperatures will reach 25°C tomorrow](https://weather.example.com/forecast).
+    #            """),
+    #     ):
+    #         match event:
+    #             case RequirementAgentFinalAnswerEvent(delta=delta):
+    #                 yield delta
+    #             case RequirementAgentSuccessEvent(state=state):
+    #                 final_answer = state.answer
 
-                    last_step = state.steps[-1]
-                    if last_step.tool.name == FinalAnswerTool.name:  # internal tool
-                        continue
+    #                 last_step = state.steps[-1]
+    #                 if last_step.tool.name == FinalAnswerTool.name:  # internal tool
+    #                     continue
 
-                    trajectory_content = TrajectoryContent(
-                        input=last_step.input, output=last_step.output, error=last_step.error
-                    )
-                    metadata = trajectory.trajectory_metadata(
-                        title=last_step.tool.name, content=trajectory_content.model_dump_json(), group_id=last_step.id
-                    )
-                    yield metadata
-                    await context.store(AgentMessage(metadata=metadata))
+    #                 trajectory_content = TrajectoryContent(
+    #                     input=last_step.input, output=last_step.output, error=last_step.error
+    #                 )
+    #                 metadata = trajectory.trajectory_metadata(
+    #                     title=last_step.tool.name, content=trajectory_content.model_dump_json(), group_id=last_step.id
+    #                 )
+    #                 yield metadata
+    #                 await context.store(AgentMessage(metadata=metadata))
 
-                    if isinstance(last_step.output, FileCreatorToolOutput):
-                        for file_info in last_step.output.result.files:
-                            part = file_info.file.to_file_part()
-                            part.file.name = file_info.display_filename
-                            artifact = AgentArtifact(name=file_info.display_filename, parts=[part])
-                            yield artifact
-                            await context.store(artifact)
+    #                 if isinstance(last_step.output, FileCreatorToolOutput):
+    #                     for file_info in last_step.output.result.files:
+    #                         part = file_info.file.to_file_part()
+    #                         part.file.name = file_info.display_filename
+    #                         artifact = AgentArtifact(name=file_info.display_filename, parts=[part])
+    #                         yield artifact
+    #                         await context.store(artifact)
 
-        if final_answer:
-            citations, clean_text = extract_citations(final_answer.text)
+    #     if final_answer:
+    #         citations, clean_text = extract_citations(final_answer.text)
 
-            message = AgentMessage(
-                text=clean_text,
-                metadata=(citation.citation_metadata(citations=citations) if citations else None),
-            )
-            await context.store(message)
-    except FrameworkError as err:
-        raise RuntimeError(err.explain())
+    #         message = AgentMessage(
+    #             text=clean_text,
+    #             metadata=(citation.citation_metadata(citations=citations) if citations else None),
+    #         )
+    #         await context.store(message)
+    # except FrameworkError as err:
+    #     raise RuntimeError(err.explain())
 
 
 def serve():
