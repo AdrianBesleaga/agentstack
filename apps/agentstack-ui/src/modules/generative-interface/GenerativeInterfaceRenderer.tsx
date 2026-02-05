@@ -10,6 +10,8 @@ import {
   DataProvider,
   Renderer,
   SetData,
+  useAction,
+  useActions,
   VisibilityProvider,
 } from '@json-render/react';
 import { defineCatalog, Spec } from '@json-render/core';
@@ -51,21 +53,29 @@ export const catalog = defineCatalog(schema, {
     },
   },
   actions: {
-    confirm_button: { description: 'Agree' },
+    button_click: { params: z.object({ button_id: z.string() }), description: 'Submits the button' },
   },
 });
 
-export const components: Components<typeof catalog> = {
-  Button: ({ props, onAction, loading }) => (
+const Btn = ({ props, loading, ...rest }) => {
+  const action = useActions();
+
+  return (
     <Button
       kind={props.kind ?? 'primary'}
       size={props.size ?? 'md'}
       disabled={loading}
-      onClick={() => onAction?.({ name: props.action })}
+      onClick={() => {
+        action.handlers.button_click(props.elementKey);
+      }}
     >
       {loading ? <InlineLoading /> : props.label}
     </Button>
-  ),
+  );
+};
+
+export const components: Components<typeof catalog> = {
+  Button: Btn,
   VerticalContainer: ({ props, children }) => (
     <div style={{ display: 'flex', flexDirection: 'column', gap: props.gap ?? 8 }}>{children}</div>
   ),
@@ -92,19 +102,13 @@ function buildRegistry(
   const registry: ComponentRegistry = {};
 
   for (const [name, componentFn] of Object.entries(components)) {
-    registry[name] = (renderProps: { element: { props: Record<string, unknown> }; children?: ReactNode }) =>
-      componentFn({
-        props: renderProps.element.props as never,
+    registry[name] = (renderProps: { element: { props: Record<string, unknown> }; children?: ReactNode }) => {
+      return componentFn({
+        props: { ...renderProps.element.props, elementKey: renderProps.element.key } as never,
         children: renderProps.children,
-        onAction: (a) => {
-          const setData = setDataRef.current;
-          const data = dataRef.current;
-          if (setData) {
-            // executeAction(a.name, a.params, setData, data);
-          }
-        },
         loading,
       });
+    };
   }
 
   return registry;
@@ -129,7 +133,13 @@ export function GenerativeInterfaceRenderer({ spec, data = {}, setData, onDataCh
   return (
     <DataProvider initialData={data} onDataChange={onDataChange}>
       <VisibilityProvider>
-        <ActionProvider>
+        <ActionProvider
+          handlers={{
+            button_click: (elementKey) => {
+              console.log(elementKey);
+            },
+          }}
+        >
           <Renderer spec={spec} registry={registry} fallback={fallbackRegistry} loading={loading} />
         </ActionProvider>
       </VisibilityProvider>

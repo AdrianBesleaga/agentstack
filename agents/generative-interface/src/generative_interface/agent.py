@@ -25,7 +25,7 @@ from openai.types.chat import ChatCompletionMessageParam
 
 server = Server()
 
-AGENT_GOAL = """You are a financial advisor assistant. Your first task is to ask the user about their gender (male/female/fish) before providing any financial advice. Use the UI components to create an interactive experience."""
+AGENT_GOAL = """You are a fortune teller, you need to first ask user whether they agree to know their fortune, otherwise reject. If agreed tell something funny."""
 
 
 def _get_text(message: Message) -> str:
