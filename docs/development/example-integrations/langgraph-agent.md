@@ -1,32 +1,33 @@
 ---
-title: "LangGraph Agent integration"
+title: "GPT Researcher (LangGraph Agent) integration"
 description: "How to integrate the agent written in LangGraph."
 ---
 
-An agent written using any framework can be easily integrated into the Agent Stack. In this example, we will demonstrate the integration of a [GPT-Researcher](https://github.com/assafelovic/gpt-researcher) agent built with LangGraph.
+Integrating an agent written in any framework into AgentStack is straightforward. In this example, we will demonstrate how to integrate a [GPT-Researcher](https://github.com/assafelovic/gpt-researcher) agent built with LangGraph.
 
 ## Prerequisites
 
-- Agent Stack installed ([Quickstart](../introduction/quickstart))
+- AgentStack installed ([Quickstart](../introduction/quickstart))
 
 ## Agent Integration
 
 <Steps>
-<Step title="Use the GPT Researcher repository">
+<Step title="Clone the GPT Researcher repository">
 ```bash
 git clone git@github.com:assafelovic/gpt-researcher.git
-cd gpt-reasearcher
+cd gpt-researcher
 ```
 </Step>
+
 <Step title="Add the agentstack-sdk dependency">
-1. Go to the `requirements.txt` file
-2. add `agentstack-sdk>=0.5.2`
-3. install dependencies `pip install -r requirements.txt`
+1. Open the `requirements.txt` file.
+2. Add `agentstack-sdk>=0.5.2`.
+3. Install the dependencies: `pip install -r requirements.txt`.
 </Step>
 
 <Step title="Use AgentStack SDK to start the agent">
 
-Replace following code in the `main.py` file:
+Replace the code in the `main.py` file:
 
 ```python
 # type: ignore
@@ -39,11 +40,10 @@ if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0", port=8000)
 ```
 
-by the following code:
+with the following:
 
 ```python
 # type: ignore
-
 from agentstack_sdk.server import Server
 from agentstack_sdk.server.context import RunContext
 from agentstack_sdk.a2a.types import AgentMessage
@@ -74,28 +74,26 @@ def run():
 
 if __name__ == "__main__":
     run()
-
 ```
-
 </Step>
+
 <Step title="Run your agent">
 
-In terminal:
+In your terminal:
 
 ```bash
 python main.py
 ```
 
-Navigate to [http://localhost:8334](http://localhost:8334) and you should see the agent in the list.
+Navigate to [http://localhost:8334](http://localhost:8334) to see your agent in the list.
 </Step>
 
-<Step title="Use Agent Stack LLM">
+<Step title="Use AgentStack LLM">
 
-Update `main.ts`:
+Update `main.py` to use the provided LLM configuration:
 
 ```python
 # type: ignore
-
 from agentstack_sdk.a2a.extensions import (
     LLMServiceExtensionSpec,
     LLMServiceExtensionServer
@@ -129,8 +127,9 @@ async def my_wrapped_agent(
 ```
 </Step>
 
-<Step title="Send Trajectory">
-Update `main.ts`:
+<Step title="Send Trajectory Data">
+
+Update `main.py` to include trajectory metadata:
 
 ```python
 # type: ignore
@@ -155,13 +154,9 @@ async def my_wrapped_agent(
         ),
     ],
 ):
-```
+    # ... previous configuration code ...
 
-and:
-
-```python
-# type: ignore
- class LogHandler:
+    class LogHandler:
         async def on_tool_start(self, tool_name, **kwargs):
             await context.yield_async(trajectory.trajectory_metadata(title=tool_name, content=str(kwargs)))
         
@@ -172,11 +167,10 @@ and:
             await context.yield_async(trajectory.trajectory_metadata(title=step, content=str(details)))
             
             
-    # Initialize the researcher
+    # Initialize the researcher with the log handler
     researcher = GPTResearcher(
         query=user_message, report_type="research_report", verbose=True, log_handler=LogHandler()
     )
 ```
-
 </Step>
 </Steps>
