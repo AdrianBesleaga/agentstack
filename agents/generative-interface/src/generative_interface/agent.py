@@ -60,7 +60,7 @@ async def agent(
 
     system_prompt = f"""{ui.catalog_prompt}
 
-{AGENT_GOAL}
+You are a fortune teller, you need to first ask user whether they agree to know their fortune, otherwise reject. If agreed tell something funny
 """
 
     history = context.load_history()
@@ -72,22 +72,30 @@ async def agent(
                 role = "assistant" if item.role == "agent" else "user"
                 llm_messages.append({"role": role, "content": content})
 
-    response = await client.chat.completions.create(
-        model=llm_config.api_model,
-        messages=llm_messages,
-    )
+    while True:
+        response = await client.chat.completions.create(
+            model=llm_config.api_model,
+            messages=llm_messages,
+        )
 
-    assistant_content = response.choices[0].message.content or ""
+        assistant_content = response.choices[0].message.content or ""
+        llm_messages.append({"role": "assistant", "content": assistant_content})
 
-    ui_spec = parse_spec_stream(assistant_content)
+        generative_ui = parse_generative_ui(assistant_content)
 
-    if ui_spec:
-        ui_response = await ui.request_ui(spec=ui_spec)
-        if ui_response:
-            yield f"You selected: {ui_response.component_id}"
+        if not generative_ui:
+            yield assistant_content
+            break
+
+        ui_response = await ui.request_ui(spec=generative_ui)
+        if not ui_response:
+            break
+
+        user_response = f"User selected: {ui_response.component_id}"
+        llm_messages.append({"role": "user", "content": user_response})
 
 
-def parse_spec_stream(content: str) -> GenerativeInterfaceSpec | None:
+def parse_generative_ui(content: str) -> GenerativeInterfaceSpec | None:
     spec: dict = {"root": "", "elements": {}}
 
     for line in content.strip().split("\n"):

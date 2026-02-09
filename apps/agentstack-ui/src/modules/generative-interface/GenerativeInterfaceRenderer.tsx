@@ -6,11 +6,9 @@
 import {
   ActionProvider,
   ComponentRegistry,
-  Components,
   DataProvider,
   Renderer,
   SetData,
-  useAction,
   useActions,
   VisibilityProvider,
 } from '@json-render/react';
@@ -57,31 +55,37 @@ export const catalog = defineCatalog(schema, {
   },
 });
 
-const Btn = ({ props, loading, ...rest }) => {
+const Btn = ({ props, loading }: { props: Record<string, unknown>; loading?: boolean }) => {
   const action = useActions();
+  const elementKey = props.elementKey as string;
+  const label = props.label as string;
+  const kind = (props.kind as string | undefined) ?? 'primary';
+  const size = (props.size as string | undefined) ?? 'md';
 
   return (
     <Button
-      kind={props.kind ?? 'primary'}
-      size={props.size ?? 'md'}
+      kind={kind as 'primary'}
+      size={size as 'md'}
       disabled={loading}
       onClick={() => {
-        action.handlers.button_click(props.elementKey);
+        action.handlers.button_click({ button_id: elementKey });
       }}
     >
-      {loading ? <InlineLoading /> : props.label}
+      {loading ? <InlineLoading /> : label}
     </Button>
   );
 };
 
-export const components: Components<typeof catalog> = {
+const components = {
   Button: Btn,
-  VerticalContainer: ({ props, children }) => (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: props.gap ?? 8 }}>{children}</div>
+  VerticalContainer: ({ props, children }: { props: Record<string, unknown>; children?: ReactNode }) => (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: (props.gap as number | undefined) ?? 8 }}>
+      {children}
+    </div>
   ),
-  Paragraph: ({ props }) => <p>{props.text}</p>,
-  HorizontalContainer: ({ props, children }) => (
-    <div style={{ display: 'flex', flexDirection: 'row', gap: props.gap ?? 8 }}>{children}</div>
+  Paragraph: ({ props }: { props: Record<string, unknown> }) => <p>{props.text as string}</p>,
+  HorizontalContainer: ({ props, children }: { props: Record<string, unknown>; children?: ReactNode }) => (
+    <div style={{ display: 'flex', flexDirection: 'row', gap: (props.gap as number | undefined) ?? 8 }}>{children}</div>
   ),
 };
 
@@ -91,6 +95,7 @@ interface RendererProps {
   setData?: SetData;
   onDataChange?: (path: string, value: unknown) => void;
   loading?: boolean;
+  onButtonClick?: (elementKey: string) => void;
 }
 
 // Build registry - uses refs to avoid recreating on data changes
@@ -102,7 +107,7 @@ function buildRegistry(
   const registry: ComponentRegistry = {};
 
   for (const [name, componentFn] of Object.entries(components)) {
-    registry[name] = (renderProps: { element: { props: Record<string, unknown> }; children?: ReactNode }) => {
+    registry[name] = (renderProps: { element: { props: Record<string, unknown>; key: string }; children?: ReactNode }) => {
       return componentFn({
         props: { ...renderProps.element.props, elementKey: renderProps.element.key } as never,
         children: renderProps.children,
@@ -118,14 +123,19 @@ const fallbackRegistry = (renderProps: { element: { type: string } }) => (
   <div>Fallback: {renderProps.element.type}</div>
 );
 
-export function GenerativeInterfaceRenderer({ spec, data = {}, setData, onDataChange, loading }: RendererProps) {
-  // Use refs to keep registry stable while still accessing latest data/setData
+export function GenerativeInterfaceRenderer({
+  spec,
+  data = {},
+  setData,
+  onDataChange,
+  loading,
+  onButtonClick,
+}: RendererProps) {
   const dataRef = useRef(data);
   const setDataRef = useRef(setData);
   dataRef.current = data;
   setDataRef.current = setData;
 
-  // Memoize registry - only changes when loading changes
   const registry = useMemo(() => buildRegistry(dataRef, setDataRef, loading), [loading]);
 
   if (!spec) return null;
@@ -135,8 +145,8 @@ export function GenerativeInterfaceRenderer({ spec, data = {}, setData, onDataCh
       <VisibilityProvider>
         <ActionProvider
           handlers={{
-            button_click: (elementKey) => {
-              console.log(elementKey);
+            button_click: ({ button_id }: { button_id: string }) => {
+              onButtonClick?.(button_id);
             },
           }}
         >
