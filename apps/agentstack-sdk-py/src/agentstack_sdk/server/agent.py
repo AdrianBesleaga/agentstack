@@ -10,7 +10,7 @@ from asyncio import CancelledError
 from collections.abc import AsyncGenerator, AsyncIterator, Callable, Generator
 from contextlib import AbstractAsyncContextManager, AsyncExitStack, asynccontextmanager, suppress
 from datetime import datetime, timedelta
-from typing import Any, NamedTuple, TypeAlias, TypeVar, cast
+from typing import Any, Final, TypeAlias, TypeVar, cast
 
 import janus
 from a2a.server.agent_execution import AgentExecutor, RequestContext
@@ -35,26 +35,26 @@ from a2a.types import (
     TaskStatus,
     TaskStatusUpdateEvent,
     TextPart,
+    TransportProtocol,
 )
 from typing_extensions import override
 
+from agentstack_sdk.a2a.extensions import AgentDetailExtensionSpec, BaseExtensionServer
 from agentstack_sdk.a2a.extensions.ui.agent_detail import (
     AgentDetail,
     AgentDetailExtensionSpec,
     AgentDetailTool,
 )
 from agentstack_sdk.a2a.extensions.ui.error import (
-    ErrorExtensionParams,
-    ErrorExtensionServer,
-    ErrorExtensionSpec,
     get_error_extension_context,
 )
 from agentstack_sdk.a2a.types import ArtifactChunk, Metadata, RunYield, RunYieldResume
-from agentstack_sdk.server.constants import _IMPLICIT_DEPENDENCY_PREFIX
+from agentstack_sdk.server.constants import DEFAULT_IMPLICIT_EXTENSIONS
 from agentstack_sdk.server.context import RunContext
 from agentstack_sdk.server.dependencies import Dependency, Depends, extract_dependencies
 from agentstack_sdk.server.store.context_store import ContextStore
 from agentstack_sdk.server.utils import cancel_task
+from agentstack_sdk.types import A2ASecurity
 from agentstack_sdk.util.logging import logger
 
 AgentFunction: TypeAlias = Callable[[], AsyncGenerator[RunYield, RunYieldResume]]
@@ -62,18 +62,142 @@ AgentFunctionFactory: TypeAlias = Callable[[RequestContext, ContextStore], Abstr
 
 OriginalFnType = TypeVar("OriginalFnType", bound=Callable[..., Any])
 
+_IMPLICIT_DEPENDENCY_PREFIX: Final = "___server_dep"
+
 
 class AgentExecuteFn(typing.Protocol):
     async def __call__(self, _ctx: RunContext, **kwargs: Any) -> None: ...
 
 
-class Agent(NamedTuple):
-    card: AgentCard
-    dependencies: dict[str, Depends]
+class ActiveDependenciesContainer:
+    def __init__(self, active_dependencies: dict[str, Dependency], run_context: RunContext):
+        self._dependencies = active_dependencies
+        self._run_context = run_context
+
+    @property
+    def user_dependency_args(self):
+        return {k: v for k, v in self._dependencies.items() if not k.startswith(_IMPLICIT_DEPENDENCY_PREFIX)}
+
+    def handle_incoming_message(self, message: Message, request_context: RequestContext):
+        for dependency in self._dependencies.values():
+            if isinstance(dependency, BaseExtensionServer):
+                dependency.handle_incoming_message(message, self._run_context, request_context)
+
+
+class Agent:
     execute_fn: AgentExecuteFn
 
+    def __init__(
+        self,
+        initial_card: AgentCard,
+        detail: AgentDetail,
+        dependency_args: dict[str, Depends],
+        execute_fn: AgentExecuteFn,
+    ) -> None:
+        self.execute_fn = execute_fn
+        self.initial_card = initial_card
+        self._card = initial_card
+        self._detail = detail
+        self._dependency_args = dependency_args
+        self._implicit_extensions: dict[str, BaseExtensionServer] = {}
+        self._required_extensions: set[str] = set()
+        self._initialized = False
 
-AgentFactory: TypeAlias = Callable[[Callable[[dict[str, Depends]], None]], Agent]
+    def initialize(
+        self,
+        url: str,
+        a2a_security: A2ASecurity | None = None,
+        preferred_transport: TransportProtocol | str | None = None,
+        additional_interfaces: list[AgentInterface] | None = None,
+        implicit_extensions: dict[str, BaseExtensionServer] = DEFAULT_IMPLICIT_EXTENSIONS,
+        required_extensions: set[str] | None = None,
+    ) -> None:
+        if self._initialized:
+            raise RuntimeError("Agent already initialized")
+
+        self._implicit_extensions = implicit_extensions
+        self._required_extensions = required_extensions or set()
+
+        user_sdk_extensions = {
+            dep.extension.spec.URI: dep.extension for dep in self._dependency_args.values() if dep.extension is not None
+        }
+
+        self._all_dependencies = {
+            **self._dependency_args,
+            **{
+                f"{_IMPLICIT_DEPENDENCY_PREFIX}{uri}": Depends(dep)
+                for uri, dep in self._implicit_extensions.items()
+                if uri not in user_sdk_extensions
+            },
+        }
+
+        self._initialized = True
+
+        capabilities = (
+            self.initial_card.capabilities.model_copy() if self.initial_card.capabilities else AgentCapabilities()
+        )
+        capabilities.extensions = [
+            *(capabilities.extensions or []),
+            *(AgentDetailExtensionSpec(self._detail).to_agent_card_extensions()),
+            *(
+                e_card
+                for ext in self._sdk_extensions
+                for e_card in ext.spec.to_agent_card_extensions(
+                    required=True if ext.spec.URI in self._required_extensions else None
+                )
+            ),
+        ]
+        a2a_security = a2a_security or A2ASecurity(
+            security=self.initial_card.security,
+            security_schemes=self.initial_card.security_schemes,
+        )
+        preferred_transport = preferred_transport or self.initial_card.preferred_transport
+        additional_interfaces = additional_interfaces or self.initial_card.additional_interfaces
+        self._card = self.initial_card.model_copy(
+            update={
+                "capabilities": capabilities,
+                "url": url,
+                "security": a2a_security["security"],
+                "security_schemes": a2a_security["security_schemes"],
+                "preferred_transport": preferred_transport,
+                "additional_interfaces": additional_interfaces,
+            }
+        )
+
+    @property
+    def card(self) -> AgentCard:
+        if not self._initialized:
+            raise RuntimeError("Agent not initialized")
+        return self._card
+
+    @property
+    def _sdk_extensions(self) -> list[BaseExtensionServer]:
+        return [dep.extension for dep in self._all_dependencies.values() if dep.extension is not None]
+
+    @asynccontextmanager
+    async def dependency_container(
+        self, message: Message, run_context: RunContext, request_context: RequestContext
+    ) -> AsyncIterator[ActiveDependenciesContainer]:
+        async with AsyncExitStack() as stack:
+            initialized_dependencies: dict[str, Dependency] = {}
+            initialize_deps_exceptions: list[Exception] = []
+            for pname, depends in self._all_dependencies.items():
+                # call dependencies with the first message and initialize their lifespan
+                try:
+                    initialized_dependencies[pname] = await stack.enter_async_context(
+                        depends(message, run_context, request_context)
+                    )
+                except Exception as e:
+                    initialize_deps_exceptions.append(e)
+
+            if initialize_deps_exceptions:
+                raise (
+                    ExceptionGroup("Failed to initialize dependencies", initialize_deps_exceptions)
+                    if len(initialize_deps_exceptions) > 1
+                    else initialize_deps_exceptions[0]
+                )
+
+            yield ActiveDependenciesContainer(initialized_dependencies, run_context)
 
 
 def agent(
@@ -95,7 +219,7 @@ def agent(
     skills: list[AgentSkill] | None = None,
     supports_authenticated_extended_card: bool | None = None,
     version: str | None = None,
-) -> Callable[[OriginalFnType], AgentFactory]:
+) -> Callable[[OriginalFnType], Agent]:
     """
     Create an Agent function.
 
@@ -127,22 +251,19 @@ def agent(
     """
 
     capabilities = capabilities.model_copy(deep=True) if capabilities else AgentCapabilities(streaming=True)
-    detail = detail or AgentDetail()
 
-    def decorator(fn: OriginalFnType) -> AgentFactory:
-        def agent_factory(modify_dependencies: Callable[[dict[str, Depends]], None]):
-            dependencies = extract_dependencies(fn)
-            modify_dependencies(dependencies)
+    def decorator(fn: OriginalFnType) -> Agent:
+        signature = inspect.signature(fn)
+        dependencies = extract_dependencies(signature)
 
-            sdk_extensions = [dep.extension for dep in dependencies.values() if dep.extension is not None]
+        resolved_name = name or fn.__name__
+        resolved_description = description or fn.__doc__ or ""
 
-            resolved_name = name or fn.__name__
-            resolved_description = description or fn.__doc__ or ""
+        # Check if user has provided an ErrorExtensionServer, if not add default
+        has_error_extension = any(isinstance(ext, ErrorExtensionServer) for ext in sdk_extensions)
+        error_extension_spec = ErrorExtensionSpec(ErrorExtensionParams()) if not has_error_extension else None
 
-            # Check if user has provided an ErrorExtensionServer, if not add default
-            has_error_extension = any(isinstance(ext, ErrorExtensionServer) for ext in sdk_extensions)
-            error_extension_spec = ErrorExtensionSpec(ErrorExtensionParams()) if not has_error_extension else None
-
+        if detail:
             if detail.tools is None and skills:
                 detail.tools = [
                     AgentDetailTool(name=skill.name, description=skill.description or "") for skill in skills
@@ -154,91 +275,94 @@ def agent(
             if detail.input_placeholder is None:
                 detail.input_placeholder = "What is your task?"
 
-            capabilities.extensions = [
-                *(capabilities.extensions or []),
-                *(AgentDetailExtensionSpec(detail).to_agent_card_extensions()),
-                *(error_extension_spec.to_agent_card_extensions() if error_extension_spec else []),
-                *(e_card for ext in sdk_extensions for e_card in ext.spec.to_agent_card_extensions()),
-            ]
+        capabilities.extensions = [
+            *(capabilities.extensions or []),
+            *(AgentDetailExtensionSpec(detail).to_agent_card_extensions()),
+            *(error_extension_spec.to_agent_card_extensions() if error_extension_spec else []),
+            *(e_card for ext in sdk_extensions for e_card in ext.spec.to_agent_card_extensions()),
+        ]
 
-            card = AgentCard(
-                url=url,
-                preferred_transport=preferred_transport,
-                additional_interfaces=additional_interfaces,
-                capabilities=capabilities,
-                default_input_modes=default_input_modes or ["text"],
-                default_output_modes=default_output_modes or ["text"],
-                description=resolved_description,
-                documentation_url=documentation_url,
-                icon_url=icon_url,
-                name=resolved_name,
-                provider=provider,
-                security=security,
-                security_schemes=security_schemes,
-                skills=skills or [],
-                supports_authenticated_extended_card=supports_authenticated_extended_card,
-                version=version or "1.0.0",
-            )
+        card = AgentCard(
+            url=url,
+            preferred_transport=preferred_transport,
+            additional_interfaces=additional_interfaces,
+            capabilities=capabilities,
+            default_input_modes=default_input_modes or ["text"],
+            default_output_modes=default_output_modes or ["text"],
+            description=resolved_description,
+            documentation_url=documentation_url,
+            icon_url=icon_url,
+            name=resolved_name,
+            provider=provider,
+            security=security,
+            security_schemes=security_schemes,
+            skills=skills or [],
+            supports_authenticated_extended_card=supports_authenticated_extended_card,
+            version=version or "1.0.0",
+        )
 
-            if inspect.isasyncgenfunction(fn):
+        if inspect.isasyncgenfunction(fn):
 
-                async def execute_fn(_ctx: RunContext, *args, **kwargs) -> None:
-                    try:
-                        gen: AsyncGenerator[RunYield, RunYieldResume] = fn(*args, **kwargs)
-                        value: RunYieldResume = None
-                        while True:
-                            value = await _ctx.yield_async(await gen.asend(value))
-                    except StopAsyncIteration:
-                        pass
-                    except Exception as e:
-                        await _ctx.yield_async(e)
-                    finally:
-                        _ctx.shutdown()
+            async def execute_fn(_ctx: RunContext, *args, **kwargs) -> None:
+                try:
+                    gen: AsyncGenerator[RunYield, RunYieldResume] = fn(*args, **kwargs)
+                    value: RunYieldResume = None
+                    while True:
+                        value = await _ctx.yield_async(await gen.asend(value))
+                except StopAsyncIteration:
+                    pass
+                except Exception as e:
+                    await _ctx.yield_async(e)
+                finally:
+                    _ctx.shutdown()
 
-            elif inspect.iscoroutinefunction(fn):
+        elif inspect.iscoroutinefunction(fn):
 
-                async def execute_fn(_ctx: RunContext, *args, **kwargs) -> None:
-                    try:
-                        await _ctx.yield_async(await fn(*args, **kwargs))
-                    except Exception as e:
-                        await _ctx.yield_async(e)
-                    finally:
-                        _ctx.shutdown()
+            async def execute_fn(_ctx: RunContext, *args, **kwargs) -> None:
+                try:
+                    await _ctx.yield_async(await fn(*args, **kwargs))
+                except Exception as e:
+                    await _ctx.yield_async(e)
+                finally:
+                    _ctx.shutdown()
 
-            elif inspect.isgeneratorfunction(fn):
+        elif inspect.isgeneratorfunction(fn):
 
-                def _execute_fn_sync(_ctx: RunContext, *args, **kwargs) -> None:
-                    try:
-                        gen: Generator[RunYield, RunYieldResume] = fn(*args, **kwargs)
-                        value = None
-                        while True:
-                            value = _ctx.yield_sync(gen.send(value))
-                    except StopIteration:
-                        pass
-                    except Exception as e:
-                        _ctx.yield_sync(e)
-                    finally:
-                        _ctx.shutdown()
+            def _execute_fn_sync(_ctx: RunContext, *args, **kwargs) -> None:
+                try:
+                    gen: Generator[RunYield, RunYieldResume] = fn(*args, **kwargs)
+                    value = None
+                    while True:
+                        value = _ctx.yield_sync(gen.send(value))
+                except StopIteration:
+                    pass
+                except Exception as e:
+                    _ctx.yield_sync(e)
+                finally:
+                    _ctx.shutdown()
 
-                async def execute_fn(_ctx: RunContext, *args, **kwargs) -> None:
-                    await asyncio.to_thread(_execute_fn_sync, _ctx, *args, **kwargs)
+            async def execute_fn(_ctx: RunContext, *args, **kwargs) -> None:
+                await asyncio.to_thread(_execute_fn_sync, _ctx, *args, **kwargs)
 
-            else:
+        else:
 
-                def _execute_fn_sync(_ctx: RunContext, *args, **kwargs) -> None:
-                    try:
-                        _ctx.yield_sync(fn(*args, **kwargs))
-                    except Exception as e:
-                        _ctx.yield_sync(e)
-                    finally:
-                        _ctx.shutdown()
+            def _execute_fn_sync(_ctx: RunContext, *args, **kwargs) -> None:
+                try:
+                    _ctx.yield_sync(fn(*args, **kwargs))
+                except Exception as e:
+                    _ctx.yield_sync(e)
+                finally:
+                    _ctx.shutdown()
 
-                async def execute_fn(_ctx: RunContext, *args, **kwargs) -> None:
-                    await asyncio.to_thread(_execute_fn_sync, _ctx, *args, **kwargs)
+            async def execute_fn(_ctx: RunContext, *args, **kwargs) -> None:
+                await asyncio.to_thread(_execute_fn_sync, _ctx, *args, **kwargs)
 
-            return Agent(card=card, dependencies=dependencies, execute_fn=execute_fn)
-
-        return agent_factory
+        return Agent(
+            initial_card=card,
+            detail=detail or AgentDetail(),
+            dependency_args=dependencies,
+            execute_fn=execute_fn,
+        )
 
     return decorator
 
@@ -256,6 +380,7 @@ class AgentRun:
         self._lock: asyncio.Lock = asyncio.Lock()
         self._on_finish: Callable[[], None] | None = on_finish
         self._working: bool = False
+        self._dependency_container: ActiveDependenciesContainer | None = None
 
     @property
     def run_context(self) -> RunContext:
@@ -289,12 +414,14 @@ class AgentRun:
                 raise RuntimeError("Attempting to start a run that is already executing or done")
             task_id, context_id, message = request_context.task_id, request_context.context_id, request_context.message
             assert task_id and context_id and message
+            context_store = await self._context_store.create(context_id)
             self._run_context = RunContext(
                 configuration=request_context.configuration,
                 context_id=context_id,
                 task_id=task_id,
                 current_task=request_context.current_task,
                 related_tasks=request_context.related_tasks,
+                _store=context_store,
             )
             self._request_context = request_context
             self._task_updater = TaskUpdater(event_queue, task_id, context_id)
@@ -310,13 +437,11 @@ class AgentRun:
             if self._working or self.done:
                 raise RuntimeError("Attempting to resume a run that is already executing or done")
             task_id, context_id, message = request_context.task_id, request_context.context_id, request_context.message
-            assert task_id and context_id and message
+            assert task_id and context_id and message and self._dependency_container
             self._request_context = request_context
             self._task_updater = TaskUpdater(event_queue, task_id, context_id)
 
-            for dependency in self._agent.dependencies.values():
-                if dependency.extension:
-                    dependency.extension.handle_incoming_message(message, self.run_context, request_context)
+            self._dependency_container.handle_incoming_message(message, request_context)
 
             self._working = True
             await self.resume_queue.put(message)
@@ -333,34 +458,6 @@ class AgentRun:
                 await self._task_updater.cancel()
             finally:
                 await cancel_task(self._task)
-
-    @asynccontextmanager
-    async def _dependencies_lifespan(self, message: Message) -> AsyncIterator[dict[str, Dependency]]:
-        async with AsyncExitStack() as stack:
-            dependency_args: dict[str, Dependency] = {}
-            initialize_deps_exceptions: list[Exception] = []
-            for pname, depends in self._agent.dependencies.items():
-                # call dependencies with the first message and initialize their lifespan
-                try:
-                    dependency_args[pname] = await stack.enter_async_context(
-                        depends(message, self.run_context, self.request_context, dependency_args)
-                    )
-                except Exception as e:
-                    initialize_deps_exceptions.append(e)
-
-            if initialize_deps_exceptions:
-                raise (
-                    ExceptionGroup("Failed to initialize dependencies", initialize_deps_exceptions)
-                    if len(initialize_deps_exceptions) > 1
-                    else initialize_deps_exceptions[0]
-                )
-
-            self.run_context._store = await self._context_store.create(
-                context_id=self.run_context.context_id,
-                initialized_dependencies=list(dependency_args.values()),
-            )
-
-            yield {k: v for k, v in dependency_args.items() if not k.startswith(_IMPLICIT_DEPENDENCY_PREFIX)}
 
     def _with_context(self, message: Message | None = None) -> Message | None:
         if message is None:
@@ -380,8 +477,13 @@ class AgentRun:
         yield_resume_queue = self.run_context._yield_resume_queue
 
         try:
-            async with self._dependencies_lifespan(initial_message) as dependency_args:
-                task = asyncio.create_task(self._agent.execute_fn(self.run_context, **dependency_args))
+            async with self._agent.dependency_container(
+                initial_message, self.run_context, self.request_context
+            ) as dependency_container:
+                self._dependency_container = dependency_container
+                task = asyncio.create_task(
+                    self._agent.execute_fn(self.run_context, **dependency_container.user_dependency_args)
+                )
                 try:
                     resume_value: RunYieldResume = None
                     opened_artifacts: set[str] = set()

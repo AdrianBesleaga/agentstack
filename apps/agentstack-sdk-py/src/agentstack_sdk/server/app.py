@@ -23,15 +23,22 @@ from fastapi.applications import AppType
 from fastapi.params import Depends
 from starlette.types import Lifespan
 
+from agentstack_sdk.a2a.extensions import BaseExtensionServer
 from agentstack_sdk.server.agent import Agent, Executor
+from agentstack_sdk.server.constants import DEFAULT_IMPLICIT_EXTENSIONS
 from agentstack_sdk.server.store.context_store import ContextStore
 from agentstack_sdk.server.store.memory_context_store import InMemoryContextStore
+from agentstack_sdk.types import SdkAuthenticationBackend
 
 
 def create_app(
     agent: Agent,
+    url: str,
     task_store: TaskStore | None = None,
     context_store: ContextStore | None = None,
+    implicit_extensions: dict[str, BaseExtensionServer] = DEFAULT_IMPLICIT_EXTENSIONS,
+    required_extensions: set[str] | None = None,
+    auth_backend: SdkAuthenticationBackend | None = None,
     queue_manager: QueueManager | None = None,
     push_config_store: PushNotificationConfigStore | None = None,
     push_sender: PushNotificationSender | None = None,
@@ -60,13 +67,25 @@ def create_app(
         request_context_builder=request_context_builder,
     )
 
+    preferred_transport = None
+    additional_interfaces = None
     if override_interfaces:
-        agent.card.additional_interfaces = [
-            AgentInterface(url=agent.card.url, transport=TransportProtocol.http_json),
-            AgentInterface(url=agent.card.url + "/jsonrpc/", transport=TransportProtocol.jsonrpc),
+        jsonrpc_url = url + "/jsonrpc/"
+        preferred_transport = TransportProtocol.jsonrpc
+        additional_interfaces = [
+            AgentInterface(url=url, transport=TransportProtocol.http_json),
+            AgentInterface(url=jsonrpc_url, transport=TransportProtocol.jsonrpc),
         ]
-        agent.card.url = agent.card.url + "/jsonrpc/"
-        agent.card.preferred_transport = TransportProtocol.jsonrpc
+        url = jsonrpc_url
+
+    agent.initialize(
+        url=url,
+        a2a_security=auth_backend.get_card_security_schemes() if auth_backend else None,
+        preferred_transport=preferred_transport,
+        additional_interfaces=additional_interfaces,
+        implicit_extensions=implicit_extensions,
+        required_extensions=(required_extensions or set()) | context_store.required_extensions,
+    )
 
     jsonrpc_app = A2AFastAPIApplication(agent_card=agent.card, http_handler=http_handler).build(
         dependencies=dependencies,

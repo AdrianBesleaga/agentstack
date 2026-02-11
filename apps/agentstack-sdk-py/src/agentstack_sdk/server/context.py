@@ -23,8 +23,13 @@ class RunContext(BaseModel, arbitrary_types_allowed=True):
     current_task: Task | None = None
     related_tasks: list[Task] | None = None
 
-    _store: ContextStoreInstance | None = PrivateAttr(None)
+    _store: ContextStoreInstance
     _yield_queue: janus.Queue[RunYield] = PrivateAttr(default_factory=janus.Queue)
+
+    def __init__(self, _store: ContextStoreInstance, **data):
+        super().__init__(**data)
+        self._store = _store
+
     _yield_resume_queue: janus.Queue[RunYieldResume] = PrivateAttr(default_factory=janus.Queue)
 
     async def store(self, data: Message | Artifact):

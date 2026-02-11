@@ -39,8 +39,8 @@ RunYield: TypeAlias = (
     | FileWithUri
     | Metadata
     | DataPart
-    | TaskStatusUpdateEvent
     | TaskArtifactUpdateEvent
+    | TaskStatusUpdateEvent
     | str
     | JsonDict
     | Exception

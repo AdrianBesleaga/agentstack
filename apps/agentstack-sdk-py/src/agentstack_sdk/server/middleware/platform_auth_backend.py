@@ -9,7 +9,7 @@ from datetime import timedelta
 from urllib.parse import urljoin
 
 from a2a.auth.user import User
-from a2a.types import AgentCard, HTTPAuthSecurityScheme, SecurityScheme
+from a2a.types import HTTPAuthSecurityScheme, SecurityScheme
 from async_lru import alru_cache
 from authlib.jose import JsonWebKey, JWTClaims, KeySet, jwt
 from authlib.jose.errors import JoseError
@@ -25,7 +25,7 @@ from starlette.requests import HTTPConnection
 from typing_extensions import override
 
 from agentstack_sdk.platform import use_platform_client
-from agentstack_sdk.types import JsonValue, SdkAuthenticationBackend
+from agentstack_sdk.types import A2ASecurity, JsonValue, SdkAuthenticationBackend
 
 logger = logging.getLogger(__name__)
 
@@ -133,14 +133,16 @@ class PlatformAuthBackend(SdkAuthenticationBackend):
             raise AuthenticationError(f"Authentication failed: {e}") from e
 
     @override
-    def update_card_security_schemes(self, agent_card: AgentCard) -> None:
-        agent_card.security_schemes = {
-            "platform_context_token": SecurityScheme(
-                HTTPAuthSecurityScheme(
-                    scheme="bearer",
-                    bearer_format="JWT",
-                    description="Platform context token, issued by the AgentStack server using POST /api/v1/context/{context_id}/token.",
+    def get_card_security_schemes(self) -> A2ASecurity:
+        return A2ASecurity(
+            security=[{"platform_context_token": []}],
+            security_schemes={
+                "platform_context_token": SecurityScheme(
+                    HTTPAuthSecurityScheme(
+                        scheme="bearer",
+                        bearer_format="JWT",
+                        description="Platform context token, issued by the AgentStack server using POST /api/v1/context/{context_id}/token.",
+                    )
                 )
-            ),
-        }
-        agent_card.security = [{"platform_context_token": []}]
+            },
+        )

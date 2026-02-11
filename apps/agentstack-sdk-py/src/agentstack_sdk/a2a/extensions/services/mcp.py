@@ -159,18 +159,6 @@ class MCPServiceExtensionServer(BaseExtensionServer[MCPServiceExtensionSpec, MCP
                     raise ValueError(f'Transport "{fulfillment.transport.type}" not allowed for demand "{name}"')
         return metadata
 
-    def _get_oauth_server(self):
-        for dependency in self._dependencies.values():
-            if isinstance(dependency, OAuthExtensionServer):
-                return dependency
-        return None
-
-    def _get_platform_server(self):
-        for dependency in self._dependencies.values():
-            if isinstance(dependency, PlatformApiExtensionServer):
-                return dependency
-        return None
-
     @asynccontextmanager
     async def create_client(self, demand: str = _DEFAULT_DEMAND_NAME):
         fulfillment = self.data.mcp_fulfillments.get(demand) if self.data else None
@@ -205,7 +193,7 @@ class MCPServiceExtensionServer(BaseExtensionServer[MCPServiceExtensionSpec, MCP
             raise NotImplementedError("Unsupported transport")
 
     async def _create_auth(self, transport: StreamableHTTPTransport):
-        platform = self._get_platform_server()
+        platform = PlatformApiExtensionServer.current()
         if (
             platform
             and platform.data
@@ -213,7 +201,7 @@ class MCPServiceExtensionServer(BaseExtensionServer[MCPServiceExtensionSpec, MCP
             and str(transport.url).startswith(str(platform.data.base_url))
         ):
             return await platform.create_httpx_auth()
-        oauth = self._get_oauth_server()
+        oauth = OAuthExtensionServer.current()
         if oauth:
             return await oauth.create_httpx_auth(resource_url=pydantic.AnyUrl(transport.url))
         return None

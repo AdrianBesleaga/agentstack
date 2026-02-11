@@ -11,7 +11,6 @@ from a2a.types import Artifact, Message
 from cachetools import TTLCache
 
 from agentstack_sdk.platform.context import ContextHistoryItem
-from agentstack_sdk.server.dependencies import Dependency
 from agentstack_sdk.server.store.context_store import ContextStore, ContextStoreInstance
 
 
@@ -55,7 +54,7 @@ class InMemoryContextStore(ContextStore):
             maxsize=max_contexts, ttl=context_ttl.total_seconds()
         )
 
-    async def create(self, context_id: str, initialized_dependencies: list[Dependency]) -> ContextStoreInstance:
+    async def create(self, context_id: str) -> ContextStoreInstance:
         if context_id not in self._instances:
             self._instances[context_id] = MemoryContextStoreInstance(context_id)
         return self._instances[context_id]
