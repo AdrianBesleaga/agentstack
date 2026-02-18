@@ -2,6 +2,7 @@
 # SPDX-License-Identifier: Apache-2.0
 
 from .embedding import *
+from .filesystem import *
 from .form import *
 from .llm import *
 from .mcp import *
