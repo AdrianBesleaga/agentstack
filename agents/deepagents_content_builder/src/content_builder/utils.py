@@ -52,6 +52,9 @@ def load_subagents(config_path: Path, tools: dict[str, BaseTool]) -> list[SubAge
 
     return subagents
 
+def f():
+    pass
+
 
 def create_chat_model(llm_config: LLMFulfillment) -> ChatOpenAI:
     return ChatOpenAI(
