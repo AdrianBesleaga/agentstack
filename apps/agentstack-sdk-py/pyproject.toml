@@ -82,3 +82,6 @@ project-includes = [
     "**/*.py*",
     "**/*.ipynb",
 ]
+
+[tool.uv.sources]
+a2a-sdk = { git = "https://github.com/a2aproject/a2a-python.git", rev = "1.0-dev" }

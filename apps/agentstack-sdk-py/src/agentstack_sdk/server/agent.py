@@ -1,6 +1,5 @@
 # Copyright 2025 © BeeAI a Series of LF Projects, LLC
 # SPDX-License-Identifier: Apache-2.0
-
 from __future__ import annotations
 
 import asyncio
@@ -10,7 +9,7 @@ from asyncio import CancelledError
 from collections.abc import AsyncGenerator, AsyncIterator, Callable, Generator
 from contextlib import AbstractAsyncContextManager, AsyncExitStack, asynccontextmanager, suppress
 from datetime import datetime, timedelta
-from typing import Any, Final, TypeAlias, TypeVar, cast
+from typing import Any, Final, TypeAlias, TypeVar
 
 import janus
 from a2a.server.agent_execution import AgentExecutor, RequestContext
@@ -19,14 +18,11 @@ from a2a.server.tasks import TaskManager, TaskStore, TaskUpdater
 from a2a.types import (
     AgentCapabilities,
     AgentCard,
+    AgentCardSignature,
     AgentInterface,
     AgentProvider,
     AgentSkill,
     Artifact,
-    DataPart,
-    FilePart,
-    FileWithBytes,
-    FileWithUri,
     Message,
     Part,
     SecurityScheme,
@@ -34,9 +30,9 @@ from a2a.types import (
     TaskState,
     TaskStatus,
     TaskStatusUpdateEvent,
-    TextPart,
-    TransportProtocol,
 )
+from a2a.types.a2a_pb2 import SecurityRequirement
+from google.protobuf import message as _message
 from typing_extensions import override
 
 from agentstack_sdk.a2a.extensions import AgentDetailExtensionSpec, BaseExtensionServer
@@ -48,8 +44,8 @@ from agentstack_sdk.a2a.extensions.ui.agent_detail import (
 from agentstack_sdk.a2a.extensions.ui.error import (
     get_error_extension_context,
 )
-from agentstack_sdk.a2a.types import ArtifactChunk, Metadata, RunYield, RunYieldResume
-from agentstack_sdk.server.constants import DEFAULT_IMPLICIT_EXTENSIONS
+from agentstack_sdk.a2a.types import Metadata, RunYield, RunYieldResume, validate_message
+from agentstack_sdk.server.constants import _DEFAULT_AGENT_INTERFACE, _DEFAULT_AGENT_SKILL, DEFAULT_IMPLICIT_EXTENSIONS
 from agentstack_sdk.server.context import RunContext
 from agentstack_sdk.server.dependencies import Dependency, Depends, extract_dependencies
 from agentstack_sdk.server.store.context_store import ContextStore
@@ -105,10 +101,8 @@ class Agent:
 
     def initialize(
         self,
-        url: str,
         a2a_security: A2ASecurity | None = None,
-        preferred_transport: TransportProtocol | str | None = None,
-        additional_interfaces: list[AgentInterface] | None = None,
+        supported_interfaces: list[AgentInterface] | None = None,
         implicit_extensions: dict[str, BaseExtensionServer] = DEFAULT_IMPLICIT_EXTENSIONS,
         required_extensions: set[str] | None = None,
     ) -> None:
@@ -133,36 +127,32 @@ class Agent:
 
         self._initialized = True
 
-        capabilities = (
-            self.initial_card.capabilities.model_copy() if self.initial_card.capabilities else AgentCapabilities()
+        capabilities = AgentCapabilities()
+        if self.initial_card.HasField("capabilities"):
+            capabilities.CopyFrom(self.initial_card.capabilities)
+
+        capabilities.extensions.extend(AgentDetailExtensionSpec(self._detail).to_agent_card_extensions())
+        capabilities.extensions.extend(
+            e_card
+            for ext in self._sdk_extensions
+            for e_card in ext.spec.to_agent_card_extensions(
+                required=True if ext.spec.URI in self._required_extensions else None
+            )
         )
-        capabilities.extensions = [
-            *(capabilities.extensions or []),
-            *(AgentDetailExtensionSpec(self._detail).to_agent_card_extensions()),
-            *(
-                e_card
-                for ext in self._sdk_extensions
-                for e_card in ext.spec.to_agent_card_extensions(
-                    required=True if ext.spec.URI in self._required_extensions else None
-                )
-            ),
-        ]
-        a2a_security = a2a_security or A2ASecurity(
-            security=self.initial_card.security,
-            security_schemes=self.initial_card.security_schemes,
-        )
-        preferred_transport = preferred_transport or self.initial_card.preferred_transport
-        additional_interfaces = additional_interfaces or self.initial_card.additional_interfaces
-        self._card = self.initial_card.model_copy(
-            update={
-                "capabilities": capabilities,
-                "url": url,
-                "security": a2a_security["security"],
-                "security_schemes": a2a_security["security_schemes"],
-                "preferred_transport": preferred_transport,
-                "additional_interfaces": additional_interfaces,
-            }
-        )
+
+        self._card = AgentCard()
+        self._card.CopyFrom(self.initial_card)
+        self._card.capabilities.CopyFrom(capabilities)
+
+        if len(self._card.supported_interfaces) == 1 and self._card.supported_interfaces[0] == _DEFAULT_AGENT_INTERFACE:
+            if not supported_interfaces:
+                raise ValueError("supported_interfaces must be provided when using default agent interface")
+            self._card.supported_interfaces.clear()  # type: ignore [attr-defined]
+        if supported_interfaces:
+            self._card.supported_interfaces.extend(supported_interfaces)
+        if a2a_security:
+            self._card.security_requirements.extend(a2a_security["security_requirements"])
+            self._card.security_schemes.update(a2a_security["security_schemes"])
 
     @property
     def card(self) -> AgentCard:
@@ -204,21 +194,19 @@ def agent(
     name: str | None = None,
     description: str | None = None,
     *,
-    url: str = "http://invalid",  # Default will be replaced by the server
-    additional_interfaces: list[AgentInterface] | None = None,
+    supported_interfaces: list[AgentInterface] | None = None,
+    provider: AgentProvider | None = None,
+    version: str | None = None,
+    documentation_url: str | None = None,
     capabilities: AgentCapabilities | None = None,
+    security_schemes: dict[str, SecurityScheme] | None = None,
+    security_requirements: list[SecurityRequirement] | None = None,
     default_input_modes: list[str] | None = None,
     default_output_modes: list[str] | None = None,
     detail: AgentDetail | None = None,
-    documentation_url: str | None = None,
     icon_url: str | None = None,
-    preferred_transport: str | None = None,
-    provider: AgentProvider | None = None,
-    security: list[dict[str, list[str]]] | None = None,
-    security_schemes: dict[str, SecurityScheme] | None = None,
     skills: list[AgentSkill] | None = None,
-    supports_authenticated_extended_card: bool | None = None,
-    version: str | None = None,
+    signatures: list[AgentCardSignature] | None = None,
 ) -> Callable[[OriginalFnType], Agent]:
     """
     Create an Agent function.
@@ -250,14 +238,19 @@ def agent(
     :param version: The agent's own version number. The format is defined by the provider.
     """
 
-    capabilities = capabilities.model_copy(deep=True) if capabilities else AgentCapabilities(streaming=True)
+    if capabilities:
+        _caps = AgentCapabilities()
+        _caps.CopyFrom(capabilities)
+        capabilities = _caps
+    else:
+        capabilities = AgentCapabilities(streaming=True)
 
     def decorator(fn: OriginalFnType) -> Agent:
         signature = inspect.signature(fn)
         dependencies = extract_dependencies(signature)
 
         resolved_name = name or fn.__name__
-        resolved_description = description or fn.__doc__ or ""
+        resolved_description = description or fn.__doc__ or "Description not provided"
 
         # Check if user has provided an ErrorExtensionServer, if not add default
         has_error_extension = any(isinstance(ext, ErrorExtensionServer) for ext in sdk_extensions)
@@ -283,21 +276,19 @@ def agent(
         ]
 
         card = AgentCard(
-            url=url,
-            preferred_transport=preferred_transport,
-            additional_interfaces=additional_interfaces,
+            name=resolved_name,
+            description=resolved_description,
+            supported_interfaces=supported_interfaces or [_DEFAULT_AGENT_INTERFACE],
+            provider=provider,
             capabilities=capabilities,
+            security_schemes=security_schemes,
+            security_requirements=security_requirements,
             default_input_modes=default_input_modes or ["text"],
             default_output_modes=default_output_modes or ["text"],
-            description=resolved_description,
             documentation_url=documentation_url,
             icon_url=icon_url,
-            name=resolved_name,
-            provider=provider,
-            security=security,
-            security_schemes=security_schemes,
-            skills=skills or [],
-            supports_authenticated_extended_card=supports_authenticated_extended_card,
+            skills=skills or [_DEFAULT_AGENT_SKILL],
+            signatures=signatures,
             version=version or "1.0.0",
         )
 
@@ -460,17 +451,10 @@ class AgentRun:
                 await cancel_task(self._task)
 
     def _with_context(self, message: Message | None = None) -> Message | None:
-        if message is None:
-            return None
-        # Note: This check would require extra handling in agents just forwarding messages from other agents
-        # Instead, we just silently replace it.
-        # if message.task_id and message.task_id != task_updater.task_id:
-        #     raise ValueError("Message must have the same task_id as the task")
-        # if message.context_id and message.context_id != task_updater.context_id:
-        #     raise ValueError("Message must have the same context_id as the task")
-        return message.model_copy(
-            deep=True, update={"context_id": self.task_updater.context_id, "task_id": self.task_updater.task_id}
-        )
+        if message:
+            message.context_id = self.task_updater.context_id
+            message.task_id = self.task_updater.task_id
+        return message
 
     async def _run_agent_function(self, initial_message: Message) -> None:
         yield_queue = self.run_context._yield_queue
@@ -490,79 +474,63 @@ class AgentRun:
                     while not task.done() or yield_queue.async_q.qsize() > 0:
                         yielded_value = await yield_queue.async_q.get()
 
+                        if isinstance(yielded_value, _message.Message):
+                            validate_message(yielded_value)
+
                         self.last_invocation = datetime.now()
 
                         match yielded_value:
                             case str(text):
                                 await self.task_updater.update_status(
-                                    TaskState.working,
-                                    message=self.task_updater.new_agent_message(parts=[Part(root=TextPart(text=text))]),
+                                    TaskState.TASK_STATE_WORKING,
+                                    message=self.task_updater.new_agent_message(parts=[Part(text=text)]),
                                 )
-                            case Part(root=part) | (TextPart() | FilePart() | DataPart() as part):
+                            case Part() as part:
                                 await self.task_updater.update_status(
-                                    TaskState.working,
-                                    message=self.task_updater.new_agent_message(parts=[Part(root=part)]),
-                                )
-                            case FileWithBytes() | FileWithUri() as file:
-                                await self.task_updater.update_status(
-                                    TaskState.working,
-                                    message=self.task_updater.new_agent_message(parts=[Part(root=FilePart(file=file))]),
+                                    TaskState.TASK_STATE_WORKING,
+                                    message=self.task_updater.new_agent_message(parts=[part]),
                                 )
                             case Message() as message:
                                 await self.task_updater.update_status(
-                                    TaskState.working, message=self._with_context(message)
+                                    TaskState.TASK_STATE_WORKING, message=self._with_context(message)
                                 )
-                            case ArtifactChunk(
-                                parts=parts,
-                                artifact_id=artifact_id,
-                                name=name,
-                                metadata=metadata,
-                                last_chunk=last_chunk,
-                            ):
-                                await self.task_updater.add_artifact(
-                                    parts=cast(list[Part], parts),
-                                    artifact_id=artifact_id,
-                                    name=name,
-                                    metadata=metadata,
-                                    append=artifact_id in opened_artifacts,
-                                    last_chunk=last_chunk,
-                                )
-                                opened_artifacts.add(artifact_id)
                             case Artifact(parts=parts, artifact_id=artifact_id, name=name, metadata=metadata):
+                                last_chunk = True
+                                if "_last_chunk" in metadata:
+                                    last_chunk = bool(metadata["_last_chunk"])
+                                    del metadata["_last_chunk"]
+                                append = artifact_id in opened_artifacts
+                                if not last_chunk:
+                                    opened_artifacts.add(artifact_id)
+                                elif artifact_id in opened_artifacts:
+                                    opened_artifacts.remove(artifact_id)
+
                                 await self.task_updater.add_artifact(
-                                    parts=parts,
+                                    parts=list(parts),
                                     artifact_id=artifact_id,
                                     name=name,
-                                    metadata=metadata,
-                                    last_chunk=True,
-                                    append=False,
+                                    metadata=dict(metadata),
+                                    last_chunk=last_chunk,
+                                    append=append,
                                 )
                             case TaskStatus(
-                                state=(TaskState.auth_required | TaskState.input_required) as state,
+                                state=(
+                                    TaskState.TASK_STATE_AUTH_REQUIRED | TaskState.TASK_STATE_INPUT_REQUIRED
+                                ) as state,
                                 message=message,
-                                timestamp=timestamp,
                             ):
-                                await self.task_updater.update_status(
-                                    state=state, message=self._with_context(message), final=True, timestamp=timestamp
-                                )
+                                await self.task_updater.update_status(state=state, message=self._with_context(message))
                                 self._working = False
                                 resume_value = await self.resume_queue.get()
                                 self.resume_queue.task_done()
-                            case TaskStatus(state=state, message=message, timestamp=timestamp):
-                                await self.task_updater.update_status(
-                                    state=state, message=self._with_context(message), timestamp=timestamp
-                                )
+                            case TaskStatus(state=state, message=message):
+                                await self.task_updater.update_status(state=state, message=self._with_context(message))
                             case TaskStatusUpdateEvent(
-                                status=TaskStatus(state=state, message=message, timestamp=timestamp),
-                                final=final,
+                                status=TaskStatus(state=state, message=message),
                                 metadata=metadata,
                             ):
                                 await self.task_updater.update_status(
-                                    state=state,
-                                    message=self._with_context(message),
-                                    timestamp=timestamp,
-                                    final=final,
-                                    metadata=metadata,
+                                    state=state, message=self._with_context(message), metadata=dict(metadata)
                                 )
                             case TaskArtifactUpdateEvent(
                                 artifact=Artifact(artifact_id=artifact_id, name=name, metadata=metadata, parts=parts),
@@ -570,22 +538,28 @@ class AgentRun:
                                 last_chunk=last_chunk,
                             ):
                                 await self.task_updater.add_artifact(
-                                    parts=parts,
+                                    parts=list(parts),
                                     artifact_id=artifact_id,
                                     name=name,
-                                    metadata=metadata,
+                                    metadata=dict(metadata),
                                     append=append,
                                     last_chunk=last_chunk,
                                 )
                             case Metadata() as metadata:
                                 await self.task_updater.update_status(
-                                    state=TaskState.working,
+                                    state=TaskState.TASK_STATE_WORKING,
                                     message=self.task_updater.new_agent_message(parts=[], metadata=metadata),
                                 )
                             case dict() as data:
+                                from google.protobuf.struct_pb2 import Struct, Value
+
+                                s = Struct()
+                                s.update(data)
                                 await self.task_updater.update_status(
-                                    state=TaskState.working,
-                                    message=self.task_updater.new_agent_message(parts=[Part(root=DataPart(data=data))]),
+                                    state=TaskState.TASK_STATE_WORKING,
+                                    message=self.task_updater.new_agent_message(
+                                        parts=[Part(data=Value(struct_value=s))]
+                                    ),
                                 )
                             case Exception() as ex:
                                 raise ex
@@ -648,7 +622,16 @@ class Executor(AgentExecutor):
             tapped_queue = event_queue.tap()
             while True:
                 match await tapped_queue.dequeue_event():
-                    case TaskStatusUpdateEvent(final=True):
+                    case TaskStatusUpdateEvent(
+                        status=TaskStatus(
+                            state=TaskState.TASK_STATE_INPUT_REQUIRED
+                            | TaskState.TASK_STATE_AUTH_REQUIRED
+                            | TaskState.TASK_STATE_COMPLETED
+                            | TaskState.TASK_STATE_FAILED
+                            | TaskState.TASK_STATE_CANCELED
+                            | TaskState.TASK_STATE_REJECTED
+                        )
+                    ):
                         break
                     case _:
                         pass
@@ -698,7 +681,10 @@ class Executor(AgentExecutor):
                             task_id=task_id, context_id=context_id, task_store=self._task_store, initial_message=None
                         )
                         event = await queue.dequeue_event(no_wait=True)
-                        if not isinstance(event, TaskStatusUpdateEvent) or event.status.state != TaskState.canceled:
+                        if (
+                            not isinstance(event, TaskStatusUpdateEvent)
+                            or event.status.state != TaskState.TASK_STATE_CANCELED
+                        ):
                             raise RuntimeError(f"Something strange occured during scheduled cancel, event: {event}")
                         await manager.save_task_event(event)
                         break

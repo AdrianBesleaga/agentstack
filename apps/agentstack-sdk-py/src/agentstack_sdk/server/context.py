@@ -8,7 +8,7 @@ from typing import Literal, overload
 from uuid import UUID
 
 import janus
-from a2a.types import Artifact, Message, MessageSendConfiguration, Task
+from a2a.types import Artifact, Message, Task
 from pydantic import BaseModel, PrivateAttr
 
 from agentstack_sdk.a2a.types import RunYield, RunYieldResume
@@ -17,7 +17,6 @@ from agentstack_sdk.server.store.context_store import ContextStoreInstance
 
 
 class RunContext(BaseModel, arbitrary_types_allowed=True):
-    configuration: MessageSendConfiguration | None = None
     task_id: str
     context_id: str
     current_task: Task | None = None
@@ -36,7 +35,11 @@ class RunContext(BaseModel, arbitrary_types_allowed=True):
         if not self._store:
             raise RuntimeError("Context store is not initialized")
         if isinstance(data, Message):
-            data = data.model_copy(deep=True, update={"context_id": self.context_id, "task_id": self.task_id})
+            msg = Message()
+            msg.CopyFrom(data)
+            msg.context_id = self.context_id
+            msg.task_id = self.task_id
+            data = msg
         await self._store.store(data)
 
     @overload

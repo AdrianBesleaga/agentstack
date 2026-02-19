@@ -16,6 +16,7 @@ import pydantic
 from a2a.server.agent_execution.context import RequestContext
 from a2a.types import AgentCard, AgentExtension
 from a2a.types import Message as A2AMessage
+from google.protobuf.json_format import MessageToDict
 from opentelemetry import trace
 from opentelemetry.trace import SpanKind
 from pydantic import BaseModel
@@ -89,7 +90,7 @@ class BaseExtensionSpec(abc.ABC, typing.Generic[ParamsT]):
         """
         if extensions := [x for x in agent.capabilities.extensions or [] if x.uri == cls.URI]:
             return cls(
-                params=pydantic.TypeAdapter(cls.Params).validate_python(extensions[0].params),
+                params=pydantic.TypeAdapter(cls.Params).validate_python(MessageToDict(extensions[0].params)),
                 required=extensions[0].required or False,
             )
         return None
@@ -167,10 +168,11 @@ class BaseExtensionServer(abc.ABC, typing.Generic[ExtensionSpecT, MetadataFromCl
         """
         Server should use this method to retrieve extension-associated metadata from a message.
         """
+        metadata = MessageToDict(message.metadata)
         return (
             None
-            if not message.metadata or self.spec.URI not in message.metadata
-            else pydantic.TypeAdapter(self.MetadataFromClient).validate_python(message.metadata[self.spec.URI])
+            if not metadata or self.spec.URI not in metadata
+            else pydantic.TypeAdapter(self.MetadataFromClient).validate_python(metadata[self.spec.URI])
         )
 
     def handle_incoming_message(self, message: A2AMessage, run_context: RunContext, request_context: RequestContext):

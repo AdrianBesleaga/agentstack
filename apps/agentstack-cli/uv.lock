@@ -4,18 +4,16 @@ requires-python = ">=3.13, <3.15"
 
 [[package]]
 name = "a2a-sdk"
-version = "0.3.24"
-source = { registry = "https://pypi.org/simple" }
+version = "0.3.24.post37.dev0+dce3650"
+source = { git = "https://github.com/a2aproject/a2a-python.git?rev=1.0-dev#dce36502b51f671ae0e0a926cc0ad8c208393329" }
 dependencies = [
     { name = "google-api-core" },
+    { name = "googleapis-common-protos" },
     { name = "httpx" },
     { name = "httpx-sse" },
+    { name = "json-rpc" },
     { name = "protobuf" },
     { name = "pydantic" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/ad/76/cefa956fb2d3911cb91552a1da8ce2dbb339f1759cb475e2982f0ae2332b/a2a_sdk-0.3.24.tar.gz", hash = "sha256:3581e6e8a854cd725808f5732f90b7978e661b6d4e227a4755a8f063a3c1599d", size = 255550, upload-time = "2026-02-20T10:05:43.423Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/10/6e/cae5f0caea527b39c0abd7204d9416768764573c76649ca03cc345a372be/a2a_sdk-0.3.24-py3-none-any.whl", hash = "sha256:7b248767096bb55311f57deebf6b767349388d94c1b376c60cb8f6b715e053f6", size = 145752, upload-time = "2026-02-20T10:05:41.729Z" },
 ]
 
 [[package]]
@@ -110,7 +108,7 @@ dependencies = [
 
 [package.metadata]
 requires-dist = [
-    { name = "a2a-sdk", specifier = "==0.3.24" },
+    { name = "a2a-sdk", git = "https://github.com/a2aproject/a2a-python.git?rev=1.0-dev" },
     { name = "anyio", specifier = ">=4.9.0" },
     { name = "async-lru", specifier = ">=2.0.4" },
     { name = "asyncclick", specifier = ">=8.1.8" },
@@ -670,6 +668,15 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/8d/34/cf272dfe4277ce03b275bb9f5e99001b31db01b21c290fd262333c96e34a/jsf-0.11.2.tar.gz", hash = "sha256:07055b363281d38ce871a9256a00587d8472802c5108721a7fe5884465104b5d", size = 29837, upload-time = "2024-03-26T02:04:38.893Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/0a/ae/7435288ab8b3059823afa48508ddf658c27d96deb8a978498103ccd71ca8/jsf-0.11.2-py3-none-any.whl", hash = "sha256:b4472c8c2d776eb3e0bb08368caa6ae0ead7ea78b20653facc07b6d93768612c", size = 49322, upload-time = "2024-03-26T02:04:37.013Z" },
+]
+
+[[package]]
+name = "json-rpc"
+version = "1.15.0"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/6d/9e/59f4a5b7855ced7346ebf40a2e9a8942863f644378d956f68bcef2c88b90/json-rpc-1.15.0.tar.gz", hash = "sha256:e6441d56c1dcd54241c937d0a2dcd193bdf0bdc539b5316524713f554b7f85b9", size = 28854, upload-time = "2023-06-11T09:45:49.078Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/94/9e/820c4b086ad01ba7d77369fb8b11470a01fac9b4977f02e18659cf378b6b/json_rpc-1.15.0-py2.py3-none-any.whl", hash = "sha256:4a4668bbbe7116feb4abbd0f54e64a4adcf4b8f648f19ffa0848ad0f6606a9bf", size = 39450, upload-time = "2023-06-11T09:45:47.136Z" },
 ]
 
 [[package]]

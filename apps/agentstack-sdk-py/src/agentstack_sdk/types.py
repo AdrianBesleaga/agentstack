@@ -6,7 +6,7 @@ from __future__ import annotations
 import abc
 from typing import TYPE_CHECKING, TypeAlias, TypedDict
 
-from a2a.types import SecurityScheme
+from a2a.types import SecurityRequirement, SecurityScheme
 from starlette.authentication import AuthenticationBackend
 
 __all__ = [
@@ -28,8 +28,8 @@ else:
 
 
 class A2ASecurity(TypedDict):
-    security: list[dict[str, list[str]]] | None
-    security_schemes: dict[str, SecurityScheme] | None
+    security_requirements: list[SecurityRequirement]
+    security_schemes: dict[str, SecurityScheme]
 
 
 class SdkAuthenticationBackend(AuthenticationBackend, abc.ABC):

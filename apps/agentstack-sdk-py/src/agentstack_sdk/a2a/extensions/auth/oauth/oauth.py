@@ -12,14 +12,14 @@ from urllib.parse import parse_qs
 import pydantic
 from a2a.server.agent_execution import RequestContext
 from a2a.types import Message as A2AMessage
-from a2a.types import Role, TextPart
+from a2a.types import Part, Role
 from mcp.client.auth import OAuthClientProvider
 from mcp.shared.auth import OAuthClientMetadata
 from typing_extensions import override
 
 from agentstack_sdk.a2a.extensions.auth.oauth.storage import MemoryTokenStorageFactory, TokenStorageFactory
 from agentstack_sdk.a2a.extensions.base import BaseExtensionClient, BaseExtensionServer, BaseExtensionSpec
-from agentstack_sdk.a2a.types import AgentMessage, AuthRequired, RunYieldResume
+from agentstack_sdk.a2a.types import AgentMessage, AuthRequired, Metadata, RunYieldResume
 from agentstack_sdk.util.pydantic import REVEAL_SECRETS, SecureBaseModel
 
 __all__ = [
@@ -139,7 +139,7 @@ class OAuthExtensionServer(BaseExtensionServer[OAuthExtensionSpec, OAuthExtensio
         data = AuthRequest(authorization_endpoint_url=authorization_endpoint_url)
         return AgentMessage(
             text="Authorization required",
-            metadata={self.spec.URI: data.model_dump(mode="json", context={REVEAL_SECRETS: True})},
+            metadata=Metadata({self.spec.URI: data.model_dump(mode="json", context={REVEAL_SECRETS: True})}),
         )
 
     def parse_auth_response(self, *, message: A2AMessage):
@@ -162,8 +162,8 @@ class OAuthExtensionClient(BaseExtensionClient[OAuthExtensionSpec, NoneType]):
 
         return A2AMessage(
             message_id=str(uuid.uuid4()),
-            role=Role.user,
-            parts=[TextPart(text="Authorization completed")],
+            role=Role.ROLE_USER,
+            parts=[Part(text="Authorization completed")],
             task_id=task_id,
             metadata={self.spec.URI: data.model_dump(mode="json", context={REVEAL_SECRETS: True})},
         )

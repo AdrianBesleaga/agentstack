@@ -259,7 +259,9 @@ async def chat(
                         input=last_step.input, output=last_step.output, error=last_step.error
                     )
                     metadata = trajectory.trajectory_metadata(
-                        title=last_step.tool.name if last_step.tool else None, content=trajectory_content.model_dump_json(), group_id=last_step.id
+                        title=last_step.tool.name if last_step.tool else None,
+                        content=trajectory_content.model_dump_json(),
+                        group_id=last_step.id,
                     )
                     yield metadata
                     await context.store(AgentMessage(metadata=metadata))
