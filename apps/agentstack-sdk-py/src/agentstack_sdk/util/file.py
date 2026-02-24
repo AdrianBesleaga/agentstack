@@ -258,7 +258,7 @@ async def load_file(
                             await file.aread()
                         yield file
 
-    elif "raw" in part:  # pyrefly: ignore [not-iterable]
+    elif part.HasField("raw"):
         yield LoadedFileWithBytes(content=part.raw, filename=part.filename, content_type=part.media_type)
     else:
         raise ValueError("Part must have either url or raw set to be loaded as a file.")

@@ -13,6 +13,7 @@ import pydantic
 from a2a.server.agent_execution import RequestContext
 from a2a.types import Message as A2AMessage
 from a2a.types import Part, Role
+from google.protobuf.json_format import MessageToDict
 from mcp.client.auth import OAuthClientProvider
 from mcp.shared.auth import OAuthClientMetadata
 from typing_extensions import override
@@ -36,6 +37,18 @@ __all__ = [
 
 if TYPE_CHECKING:
     from agentstack_sdk.server.context import RunContext
+
+__all__ = [
+    "AuthRequest",
+    "AuthResponse",
+    "OAuthDemand",
+    "OAuthExtensionClient",
+    "OAuthExtensionMetadata",
+    "OAuthExtensionParams",
+    "OAuthExtensionServer",
+    "OAuthExtensionSpec",
+    "OAuthFulfillment",
+]
 
 _DEFAULT_DEMAND_NAME = "default"
 
@@ -143,7 +156,7 @@ class OAuthExtensionServer(BaseExtensionServer[OAuthExtensionSpec, OAuthExtensio
         )
 
     def parse_auth_response(self, *, message: A2AMessage):
-        if not message or not message.metadata or not (data := message.metadata.get(self.spec.URI)):
+        if not (data := MessageToDict(message.metadata).get(self.spec.URI)):
             raise RuntimeError("Invalid auth response")
         return AuthResponse.model_validate(data)
 
@@ -153,7 +166,7 @@ class OAuthExtensionClient(BaseExtensionClient[OAuthExtensionSpec, NoneType]):
         return {self.spec.URI: OAuthExtensionMetadata(oauth_fulfillments=oauth_fulfillments).model_dump(mode="json")}
 
     def parse_auth_request(self, *, message: A2AMessage):
-        if not message or not message.metadata or not (data := message.metadata.get(self.spec.URI)):
+        if not (data := MessageToDict(message.metadata).get(self.spec.URI)):
             raise ValueError("Invalid auth request")
         return AuthRequest.model_validate(data)
 

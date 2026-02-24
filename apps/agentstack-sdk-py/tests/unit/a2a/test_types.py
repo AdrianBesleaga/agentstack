@@ -1,3 +1,6 @@
+# Copyright 2026 © BeeAI a Series of LF Projects, LLC
+# SPDX-License-Identifier: Apache-2.0
+
 import uuid
 
 import pytest
@@ -92,7 +95,7 @@ def test_task_status_validation():
     # TaskStatus requires state
 
     # 1. Valid
-    ts = TaskStatus(state=TaskState.TASK_STATE_WORKING)
+    _ = TaskStatus(state=TaskState.TASK_STATE_WORKING)
 
     # 2. Missing state (it's an enum, default is 0 which is UNSPECIFIED)
     with pytest.raises(ValueError, match="state is required"):

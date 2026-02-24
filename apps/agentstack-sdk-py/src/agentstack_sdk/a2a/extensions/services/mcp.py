@@ -40,6 +40,19 @@ __all__ = [
 if TYPE_CHECKING:
     from agentstack_sdk.server.context import RunContext
 
+__all__ = [
+    "MCPDemand",
+    "MCPFulfillment",
+    "MCPServiceExtensionClient",
+    "MCPServiceExtensionMetadata",
+    "MCPServiceExtensionParams",
+    "MCPServiceExtensionServer",
+    "MCPServiceExtensionSpec",
+    "MCPTransport",
+    "StdioTransport",
+    "StreamableHTTPTransport",
+]
+
 _TRANSPORT_TYPES = Literal["streamable_http", "stdio"]
 
 _DEFAULT_DEMAND_NAME = "default"

@@ -1,14 +1,12 @@
 # Copyright 2025 © BeeAI a Series of LF Projects, LLC
 # SPDX-License-Identifier: Apache-2.0
-from ddgs.cli import cli
-from typing import AsyncIterator
 
 from __future__ import annotations
 
 import asyncio
 import base64
 import socket
-from collections.abc import AsyncGenerator
+from collections.abc import AsyncGenerator, AsyncIterator
 from contextlib import asynccontextmanager, closing
 from datetime import timedelta
 

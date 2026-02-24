@@ -38,7 +38,6 @@ class VersionInfo(pydantic.BaseModel):
 
 
 class Provider(pydantic.BaseModel, arbitrary_types_allowed=True):
-    model_config = pydantic.ConfigDict(arbitrary_types_allowed=True)
     id: str
     auto_stop_timeout: timedelta
     source: str

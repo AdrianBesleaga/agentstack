@@ -152,7 +152,8 @@ class Agent:
             self._card.supported_interfaces.extend(supported_interfaces)
         if a2a_security:
             self._card.security_requirements.extend(a2a_security["security_requirements"])
-            self._card.security_schemes.update(a2a_security["security_schemes"])
+            for security_key, security_value in a2a_security["security_schemes"].items():
+                self._card.security_schemes[security_key].CopyFrom(security_value)
 
     @property
     def card(self) -> AgentCard:
@@ -246,34 +247,23 @@ def agent(
         capabilities = AgentCapabilities(streaming=True)
 
     def decorator(fn: OriginalFnType) -> Agent:
-        signature = inspect.signature(fn)
-        dependencies = extract_dependencies(signature)
+        dependencies = extract_dependencies(fn)
 
         resolved_name = name or fn.__name__
         resolved_description = description or fn.__doc__ or "Description not provided"
 
-        # Check if user has provided an ErrorExtensionServer, if not add default
-        has_error_extension = any(isinstance(ext, ErrorExtensionServer) for ext in sdk_extensions)
-        error_extension_spec = ErrorExtensionSpec(ErrorExtensionParams()) if not has_error_extension else None
+        final_detail = detail or AgentDetail()
 
-        if detail:
-            if detail.tools is None and skills:
-                detail.tools = [
-                    AgentDetailTool(name=skill.name, description=skill.description or "") for skill in skills
-                ]
+        if final_detail.tools is None and skills:
+            final_detail.tools = [
+                AgentDetailTool(name=skill.name, description=skill.description or "") for skill in skills
+            ]
 
-            if detail.user_greeting is None:
-                detail.user_greeting = resolved_description
+        if final_detail.user_greeting is None:
+            final_detail.user_greeting = resolved_description
 
-            if detail.input_placeholder is None:
-                detail.input_placeholder = "What is your task?"
-
-        capabilities.extensions = [
-            *(capabilities.extensions or []),
-            *(AgentDetailExtensionSpec(detail).to_agent_card_extensions()),
-            *(error_extension_spec.to_agent_card_extensions() if error_extension_spec else []),
-            *(e_card for ext in sdk_extensions for e_card in ext.spec.to_agent_card_extensions()),
-        ]
+        if final_detail.input_placeholder is None:
+            final_detail.input_placeholder = "What is your task?"
 
         card = AgentCard(
             name=resolved_name,
@@ -350,7 +340,7 @@ def agent(
 
         return Agent(
             initial_card=card,
-            detail=detail or AgentDetail(),
+            detail=final_detail,
             dependency_args=dependencies,
             execute_fn=execute_fn,
         )

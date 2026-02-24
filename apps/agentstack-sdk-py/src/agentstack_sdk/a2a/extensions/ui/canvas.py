@@ -10,11 +10,18 @@ import pydantic
 from a2a.server.agent_execution.context import RequestContext
 from a2a.types import Artifact
 from a2a.types import Message as A2AMessage
-from google.protobuf.json_format import ParseDict
+from google.protobuf.json_format import MessageToDict, ParseDict
 from typing_extensions import override
 
 if TYPE_CHECKING:
     from agentstack_sdk.server.context import RunContext
+
+__all__ = [
+    "CanvasEditRequest",
+    "CanvasEditRequestMetadata",
+    "CanvasExtensionServer",
+    "CanvasExtensionSpec",
+]
 
 from agentstack_sdk.a2a.extensions.base import (
     BaseExtensionServer,
@@ -58,14 +65,14 @@ class CanvasExtensionServer(BaseExtensionServer[CanvasExtensionSpec, CanvasEditR
     @override
     def handle_incoming_message(self, message: A2AMessage, run_context: RunContext, request_context: RequestContext):
         if message.metadata and self.spec.URI in message.metadata and message.parts:
-            message.parts.clear()
-            message.parts.extend([part for part in message.parts if "text" not in part])
+            message.parts.clear()  # pyrefly: ignore[missing-attribute]
+            message.parts.extend([part for part in message.parts if not part.HasField("text")])
 
         super().handle_incoming_message(message, run_context, request_context)
         self.context = run_context
 
     async def parse_canvas_edit_request(self, *, message: A2AMessage) -> CanvasEditRequest | None:
-        if not message or not message.metadata or not (data := message.metadata.get(self.spec.URI)):
+        if not (data := MessageToDict(message.metadata).get(self.spec.URI)):
             return None
 
         metadata = CanvasEditRequestMetadata.model_validate(data)

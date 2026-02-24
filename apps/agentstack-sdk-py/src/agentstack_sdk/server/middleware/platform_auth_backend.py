@@ -106,12 +106,21 @@ class PlatformAuthBackend(SdkAuthenticationBackend):
             else:
                 audiences = [str(request.url.replace(path=path)) for path in ["/", "/jsonrpc"]]
 
+            # all variants with and without ending slash are valid
+            audiences = list(
+                {
+                    *(aud.rstrip("/") for aud in audiences),
+                    *(aud + "/" for aud in audiences if not aud.endswith("/")),
+                }
+            )
+
+        claims: JWTClaims | None = None
         try:
             # check only hostname urljoin("http://host:port/a/b", "/") -> "http://host:port/"
             jwks = await discover_jwks()
 
             # Verify signature
-            claims: JWTClaims = jwt.decode(
+            claims = jwt.decode(
                 auth.credentials,
                 jwks,
                 claims_options={
@@ -126,6 +135,8 @@ class PlatformAuthBackend(SdkAuthenticationBackend):
             return AuthCredentials(["authenticated"]), PlatformAuthenticatedUser(claims, auth.credentials)
 
         except (ValueError, JoseError) as e:
+            if "aud" in str(e) and claims:
+                logger.warning(f"Invalid audience: {claims.get('aud')}, expected: {audiences}")
             logger.warning(f"Authentication failed: {e}")
             raise AuthenticationError("Invalid token") from e
         except Exception as e:

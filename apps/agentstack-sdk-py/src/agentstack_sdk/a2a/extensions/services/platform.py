@@ -40,6 +40,15 @@ __all__ = [
 if TYPE_CHECKING:
     from agentstack_sdk.server.context import RunContext
 
+__all__ = [
+    "PlatformApiExtension",
+    "PlatformApiExtensionClient",
+    "PlatformApiExtensionMetadata",
+    "PlatformApiExtensionParams",
+    "PlatformApiExtensionServer",
+    "PlatformApiExtensionSpec",
+]
+
 
 class PlatformApiExtensionMetadata(SecureBaseModel):
     base_url: HttpUrl | None = None

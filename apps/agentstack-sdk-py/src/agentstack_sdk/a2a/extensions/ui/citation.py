@@ -7,7 +7,7 @@ from __future__ import annotations
 from types import NoneType
 
 import pydantic
-from a2a.types import Part, Message
+from a2a.types import Message, Part
 
 from agentstack_sdk.a2a.extensions.base import (
     BaseExtensionClient,

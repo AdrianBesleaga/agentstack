@@ -257,7 +257,7 @@ class File(pydantic.BaseModel):
                 )
             ).raise_for_status()
 
-    def to_file_part(self: File) -> Part:
+    def to_part(self: File) -> Part:
         return Part(filename=self.filename, url=f"agentstack://{self.id}")
 
     @staticmethod

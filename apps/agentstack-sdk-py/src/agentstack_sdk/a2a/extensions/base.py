@@ -84,15 +84,12 @@ class BaseExtensionSpec(abc.ABC, typing.Generic[ParamsT]):
         self.required = required
 
     @classmethod
-    def from_agent_card(cls: type["BaseExtensionSpec"], agent: AgentCard) -> typing.Self | None:
+    def from_agent_card(cls: type[typing.Self], agent: AgentCard) -> typing.Self | None:
         """
         Client should construct an extension instance using this classmethod.
         """
         if extensions := [x for x in agent.capabilities.extensions or [] if x.uri == cls.URI]:
-            return cls(
-                params=pydantic.TypeAdapter(cls.Params).validate_python(MessageToDict(extensions[0].params)),
-                required=extensions[0].required or False,
-            )
+            return cls(params=pydantic.TypeAdapter(cls.Params).validate_python(MessageToDict(extensions[0].params)))
         return None
 
     def to_agent_card_extensions(self, *, required: bool | None = None) -> list[AgentExtension]:
@@ -223,5 +220,7 @@ class BaseExtensionClient(abc.ABC, typing.Generic[ExtensionSpecT, MetadataFromSe
         return (
             None
             if not message.metadata or self.spec.URI not in message.metadata
-            else pydantic.TypeAdapter(self.MetadataFromServer).validate_python(message.metadata[self.spec.URI])
+            else pydantic.TypeAdapter(self.MetadataFromServer).validate_python(
+                MessageToDict(message.metadata)[self.spec.URI]
+            )
         )

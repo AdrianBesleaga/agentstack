@@ -24,8 +24,6 @@ from agentstack_sdk.a2a.extensions import (
     LLMServiceExtensionSpec,
     TrajectoryExtensionServer,
     TrajectoryExtensionSpec,
-)
-from agentstack_sdk.a2a.extensions.services.platform import (
     PlatformApiExtensionServer,
     PlatformApiExtensionSpec,
 )
@@ -268,8 +266,8 @@ async def chat(
 
                     if isinstance(last_step.output, FileCreatorToolOutput):
                         for file_info in last_step.output.result.files:
-                            part = file_info.file.to_file_part()
-                            part.file.name = file_info.display_filename
+                            part = file_info.file.to_part()
+                            part.filename = file_info.display_filename
                             artifact = AgentArtifact(name=file_info.display_filename, parts=[part])
                             yield artifact
                             await context.store(artifact)

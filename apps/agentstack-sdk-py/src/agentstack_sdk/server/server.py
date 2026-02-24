@@ -24,6 +24,7 @@ from a2a.types import AgentExtension
 from fastapi import FastAPI
 from fastapi.applications import AppType
 from fastapi.responses import PlainTextResponse
+from google.protobuf.json_format import MessageToDict
 from httpx import HTTPError, HTTPStatusError
 from starlette.authentication import AuthenticationError
 from starlette.middleware.authentication import AuthenticationMiddleware
@@ -293,7 +294,10 @@ class Server:
     async def _reload_variables_periodically(self):
         while True:
             await asyncio.sleep(5)
-            await self._load_variables()
+            try:
+                await self._load_variables()
+            except Exception as e:
+                logger.error(f"Failed to reload variables: {e}")
 
     async def _load_variables(self, first_run: bool = False) -> None:
         from agentstack_sdk.a2a.extensions import AgentDetail, AgentDetailExtensionSpec
@@ -319,7 +323,7 @@ class Server:
             for extension in self._agent.card.capabilities.extensions or []:
                 match extension:
                     case AgentExtension(uri=AgentDetailExtensionSpec.URI, params=params):
-                        variables = AgentDetail.model_validate(params).variables or []
+                        variables = AgentDetail.model_validate(MessageToDict(params)).variables or []
                         if missing_keys := [env for env in variables if env.required and os.getenv(env.name) is None]:
                             logger.warning(
                                 f"Missing required env variables: {missing_keys}, "

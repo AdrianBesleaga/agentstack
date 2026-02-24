@@ -34,7 +34,7 @@ class ProviderDiscovery(pydantic.BaseModel, arbitrary_types_allowed=True):
     @classmethod
     def parse_card(cls: Self, value: dict[str, Any] | None) -> AgentCard | None:
         if value is not None:
-            return ParseDict(value, AgentCard(skip_verify=True))
+            return ParseDict(value, AgentCard())
         return None
 
     @staticmethod
