@@ -85,7 +85,7 @@ Copy this checklist into your context and check off items as you complete them:
 ```
 Task Progress:
 - [ ] Step 1: Classify the Agent
-- [ ] Step 2: Add and Install Dependencies
+- [ ] Step 2: Add and install dependencies (run `setup.sh`)
 - [ ] Step 3: Create the Server Wrapper
 - [ ] Step 4: Wire LLM / Services via Extensions
 - [ ] Step 5: Implement Error Handling
@@ -115,6 +115,8 @@ This classification determines:
 ---
 
 ## Step 2 – Add and Install Dependencies
+
+Run `setup.sh` to install dependencies. If that doesn't work, follow these steps:
 
 1. Find the existing dependency file:
    - `requirements.txt` → append `agentstack-sdk~=<VERSION>`
@@ -192,7 +194,7 @@ Before writing the code, analyze the original source (docstrings, CLI help, READ
 - **Detail**: Populate `AgentDetail` with `interaction_mode` (Step 1), `tools`, `author` (must be a dictionary, e.g., `{"name": "agentstack"}`), and `programming_language`.
 - **Skills**: Define `AgentSkill` entries with `id`, `name`, `description`, `tags`, and `examples`.
 - **Function Docstring**: The wrapper function's docstring should be a concise summary shown in registries.
-- **Extensions**: Identify if the agent needs optional platform capabilities (Step 8) like Citations, Secrets, or Trajectory.
+- **Extensions**: Identify if the agent needs platform capabilities (Step 8) like Citations, Secrets, or Trajectory.
 
 ### Key elements
 
@@ -222,7 +224,7 @@ Single-turn Implementation:
 - [ ] Extract user message with `get_message_text(input)`
 - [ ] Only call `context.load_history()` if continuity is intentionally required
 - [ ] Pass necessary inputs (from forms or text) to original agent logic
-- [ ] Route intermediate progress steps to Trajectory output (Optional)
+- [ ] Route intermediate progress steps to Trajectory output (If applicable)
 - [ ] Yield the final response via `AgentMessage(text=result)`
 - [ ] Persist both input and response via `context.store()`
 ```
@@ -236,7 +238,7 @@ Multi-turn Implementation:
 - [ ] Store input: Save incoming user message immediately with `await context.store(input)`
 - [ ] Load history: Retrieve past conversation via `[msg async for msg in context.load_history() if isinstance(msg, Message)]`
 - [ ] Execute agent: Pass the filtered history to the original agent logic
-- [ ] Route traces: Emit intermediate multi-step reasoning to trajectory extension (Optional)
+- [ ] Route traces: Emit intermediate multi-step reasoning to trajectory extension (If applicable)
 - [ ] Yield response: Return final answering chunks with `yield AgentMessage(text=...)`
 - [ ] Store response: Save the final response with `await context.store(response)`
 ```
