@@ -124,7 +124,7 @@ uv run wheel pack "$tmpdir" --dest-dir ./dist >/dev/null
 rm -rf "$tmpdir"
 
 # Verify that the wheel works
-if ! uv tool run --isolated --from "$universal_wheel" --with ../agentstack-sdk-py/dist/agentstack_sdk-*-py3-none-any.whl -- agentstack version; then
+if ! uv tool run --python 3.13 --isolated --from "$universal_wheel" --with ../agentstack-sdk-py/dist/agentstack_sdk-*-py3-none-any.whl -- agentstack version; then
   echo "Failed to install $universal_wheel"
   exit 1
 fi
