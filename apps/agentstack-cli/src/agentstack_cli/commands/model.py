@@ -564,6 +564,7 @@ async def setup(
                     watsonx_region=llm_watsonx_region,
                     watsonx_project_or_space=llm_watsonx_project_or_space,
                     watsonx_project_or_space_id=llm_watsonx_project_or_space_id,
+                    auto_pull_models=yes,
                 )
                 default_llm_model = await _select_default_model(ModelCapability.LLM, model_id=llm_model, yes=yes)
 
@@ -739,6 +740,7 @@ async def add_provider(
             watsonx_region=watsonx_region,
             watsonx_project_or_space=watsonx_project_or_space,
             watsonx_project_or_space_id=watsonx_project_or_space_id,
+            auto_pull_models=yes,
         )
 
         conf = await SystemConfiguration.get()
