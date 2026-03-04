@@ -347,8 +347,6 @@ All PRs **must** either include corresponding documentation in `docs/development
 
 Special care needs to be taken with the `docs/development/reference/` folder, as its contents are automatically generated. Use `mise run agentstack-cli:docs` to regenerate the CLI reference when modifying the CLI interface. Use `mise run agentstack-sdk-py:docs` to regenerate the Python SDK reference when making any changes to it; Additionally, modify the corresponding SDK reference generating scripts in `apps/agentstack-sdk-py/docs` and the docs/docs.json file whenever you change the package import structure to reflect those changes.
 
-Tha same applies to files the `docs/development/reference/`
-
 Try to follow this structure:
 
 - **Elevator pitch:** What value this feature brings to the user.

@@ -88,9 +88,21 @@ PAGE_CONFIG: list[dict] = [
         "description": "Core server for creating and running A2A-compatible agents",
         "import_path": "agentstack_sdk.server",
         "submodule_cards": [
-            {"title": "Middleware", "filename": "server-middleware-platform-auth-backend", "description": "Platform authentication middleware"},
-            {"title": "Memory context store", "filename": "server-store-memory-context-store", "description": "Context management using in-memory storage"},
-            {"title": "Platform context store", "filename": "server-store-platform-context-store", "description": "Context management using platform storage"},
+            {
+                "title": "Middleware",
+                "filename": "server-middleware-platform-auth-backend",
+                "description": "Platform authentication middleware",
+            },
+            {
+                "title": "Memory context store",
+                "filename": "server-store-memory-context-store",
+                "description": "Context management using in-memory storage",
+            },
+            {
+                "title": "Platform context store",
+                "filename": "server-store-platform-context-store",
+                "description": "Context management using platform storage",
+            },
         ],
     },
     {
@@ -220,7 +232,7 @@ PAGE_CONFIG: list[dict] = [
         "import_path": "agentstack_sdk.a2a.extensions.ui",
     },
     # ── platform (grouped by sub-module) ──────────────────────────────────────
-        {
+    {
         "json_key": "agentstack_sdk.platform",
         "filename": "platform",
         "title": "Platform",

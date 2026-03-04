@@ -533,7 +533,18 @@ _VALUE_PREFIX_TO_KIND: list[tuple[str, TypingKind]] = [
 
 _TYPE_ALIAS_ANNOTATION_NAMES = {"TypeAlias", "typing.TypeAlias", "typing_extensions.TypeAlias"}
 
-_UNION_TYPE_ALIAS_RE = re.compile(r"^[\w][\w\[\]., ]*(\s*\|\s*[\w][\w\[\]., ]*)+$")
+
+def _is_top_level_union(val_str: str) -> bool:
+    """Return True if val_str is an A | B union with at least one | outside brackets."""
+    depth = 0
+    for ch in val_str:
+        if ch in "([{":
+            depth += 1
+        elif ch in ")]}":
+            depth -= 1
+        elif ch == "|" and depth == 0:
+            return True
+    return False
 
 
 def _get_typing_kind(attr: griffe.Attribute) -> str | None:
@@ -555,7 +566,7 @@ def _get_typing_kind(attr: griffe.Attribute) -> str | None:
         if val_str.startswith(prefix):
             return kind
 
-    if _UNION_TYPE_ALIAS_RE.match(val_str):
+    if _is_top_level_union(val_str):
         return TypingKind.UNION_ALIAS
 
     return None
