@@ -17,11 +17,9 @@ from uuid import UUID
 import httpx
 from a2a.client import ClientCallContext, ClientConfig, ClientFactory
 from a2a.client.base_client import BaseClient
-from a2a.client.errors import A2AClientJSONRPCError
 from a2a.client.transports.base import ClientTransport
 from a2a.server.context import ServerCallContext
 from a2a.server.events import Event
-from a2a.server.request_handlers.jsonrpc_handler import ERROR_CODE_MAP
 from a2a.server.request_handlers.request_handler import RequestHandler
 from a2a.types import (
     AgentCard,
@@ -45,7 +43,7 @@ from a2a.types import (
     TaskNotFoundError,
     TaskPushNotificationConfig,
 )
-from a2a.utils.errors import ServerError
+from a2a.utils.errors import A2AError
 from google.protobuf.json_format import ParseDict
 from kink import inject
 from opentelemetry import trace
@@ -126,22 +124,16 @@ def _handle_exception[**P, T](
             yield
         except EntityNotFoundError as e:
             if "task" in e.entity:
-                raise ServerError(error=TaskNotFoundError()) from e
+                raise TaskNotFoundError() from e
             raise
         except ForbiddenUpdateError as e:
-            raise ServerError(error=InvalidRequestError(message=str(e))) from e
-        except A2AClientJSONRPCError as e:
-            if (
-                isinstance(e.error, dict)
-                and "code" in e.error
-                and (error_cls := {v: k for k, v in ERROR_CODE_MAP.items()}.get(e.error["code"]))
-            ):
-                raise ServerError(error=error_cls(e.error.get("message"))) from e
-            raise ServerError(error=e.error) from e
+            raise InvalidRequestError(message=str(e)) from e
+        except A2AError:
+            raise
         except InvalidProviderCallError as e:
-            raise ServerError(error=InvalidRequestError(message=f"Invalid request to agent: {e!r}")) from e
+            raise InvalidRequestError(message=f"Invalid request to agent: {e!r}") from e
         except Exception as e:
-            raise ServerError(error=InternalError(message=f"Internal error: {e!r}")) from e
+            raise InternalError(message=f"Internal error: {e!r}") from e
 
     if inspect.isasyncgenfunction(fn):
 

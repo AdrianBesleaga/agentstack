@@ -8,7 +8,7 @@ from collections.abc import AsyncIterator
 
 import pytest
 from a2a.client import Client, ClientEvent, create_text_message_object
-from a2a.client.errors import A2AClientJSONRPCError
+from a2a.utils.errors import A2AError
 from a2a.types import (
     CancelTaskRequest,
     GetTaskRequest,
@@ -352,5 +352,5 @@ async def test_run_timeout(awaiter_with_1s_timeout: tuple[Server, Client]) -> No
     resume_message = create_text_message_object(content="Resume input")
     resume_message.task_id = initial_task.id
 
-    with pytest.raises(A2AClientJSONRPCError, match="is in terminal state"):
+    with pytest.raises(A2AError, match="is in terminal state"):
         await get_final_task_from_stream(client.send_message(resume_message))

@@ -49,7 +49,7 @@ from a2a.utils import (
     EXTENDED_AGENT_CARD_PATH,
     PREV_AGENT_CARD_WELL_KNOWN_PATH,
 )
-from a2a.utils.errors import MethodNotImplementedError
+from a2a.utils.errors import UnsupportedOperationError
 from fastapi import FastAPI
 from google.protobuf.struct_pb2 import Struct, Value
 from httpx import Client, ReadTimeout
@@ -788,7 +788,7 @@ def test_invalid_request_structure(client: Client):
 
 def test_method_not_implemented(client: Client, handler: mock.AsyncMock, ensure_mock_task):
     """Test handling MethodNotImplementedError."""
-    handler.on_get_task.side_effect = MethodNotImplementedError()
+    handler.on_get_task.side_effect = UnsupportedOperationError()
 
     response = client.post(
         "/",

@@ -14,7 +14,7 @@ from unittest import mock
 import kr8s
 import pytest
 import uvicorn
-from a2a.client import A2AClientHTTPError
+from a2a.client import A2AClientError
 from a2a.client.helpers import create_text_message_object
 from a2a.server.agent_execution import AgentExecutor
 from a2a.server.apps import A2AStarletteApplication
@@ -143,7 +143,7 @@ async def test_imported_agent(
     async with a2a_client_factory(providers[0].agent_card, invalid_context_token) as a2a_client:
         with (
             subtests.test("run chat agent with invalid token"),
-            pytest.raises(A2AClientHTTPError, match="403 Forbidden"),
+            pytest.raises(A2AClientError, match="403 Forbidden"),
         ):
             await get_final_task_from_stream(a2a_client.send_message(message))
 

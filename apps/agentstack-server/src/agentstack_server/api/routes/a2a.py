@@ -8,7 +8,6 @@ from urllib.parse import urljoin
 from uuid import UUID
 
 import fastapi
-import fastapi.responses
 from a2a.server.apps import A2AFastAPIApplication
 from a2a.server.apps.rest.rest_adapter import RESTAdapter
 from a2a.types import AgentCard, AgentInterface, HTTPAuthSecurityScheme, SecurityRequirement, SecurityScheme

@@ -16,7 +16,7 @@ from typing import Any
 import httpx
 import openai
 import pydantic
-from a2a.client import A2AClientHTTPError, Client, ClientConfig, ClientFactory
+from a2a.client import A2AClientError, Client, ClientConfig, ClientFactory
 from a2a.types import AgentCard
 from agentstack_sdk.platform.context import ContextToken
 from google.protobuf.json_format import MessageToDict
@@ -142,7 +142,7 @@ async def a2a_client(agent_card: AgentCard, context_token: ContextToken) -> Asyn
             yield ClientFactory(ClientConfig(httpx_client=httpx_client, use_client_preference=True)).create(
                 card=agent_card
             )
-    except A2AClientHTTPError as ex:
+    except A2AClientError as ex:
         card_data = json.dumps(
             pick(MessageToDict(agent_card), {"url", "additional_interfaces", "preferred_transport"}),
             indent=2,
