@@ -85,7 +85,7 @@ class ErrorExtensionParams(pydantic.BaseModel):
     include_stacktrace: bool = False
 
 
-class ErrorExtensionSpec(BaseExtensionSpec[ErrorExtensionParams]):
+class ErrorExtensionSpec(BaseExtensionSpec[ErrorExtensionParams, NoneType]):
     URI: str = "https://a2a-extensions.agentstack.beeai.dev/ui/error/v1"
 
 

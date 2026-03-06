@@ -45,6 +45,7 @@ __all__ = [
 
 A2A_EXTENSION_SECRETS_REQUESTED = "a2a_extension.secrets.requested"
 A2A_EXTENSION_SECRETS_RESOLVED = "a2a_extension.secrets.resolved"
+_DEFAULT_DEMAND_NAME = "default"
 
 
 class SecretDemand(pydantic.BaseModel):
@@ -64,15 +65,22 @@ class SecretsServiceExtensionMetadata(pydantic.BaseModel):
     secret_fulfillments: dict[str, SecretFulfillment] = {}
 
 
-class SecretsExtensionSpec(BaseExtensionSpec[SecretsServiceExtensionParams | None]):
+class SecretsExtensionSpec(BaseExtensionSpec[SecretsServiceExtensionParams | None, SecretsServiceExtensionMetadata]):
     URI: str = "https://a2a-extensions.agentstack.beeai.dev/auth/secrets/v1"
 
     @classmethod
-    def single_demand(cls, name: str, key: str | None = None, description: str | None = None) -> Self:
+    def single_demand(
+        cls,
+        name: str,
+        key: str = _DEFAULT_DEMAND_NAME,
+        description: str | None = None,
+        default: SecretFulfillment | None = None,
+    ) -> Self:
         return cls(
             params=SecretsServiceExtensionParams(
-                secret_demands={key or "default": SecretDemand(description=description, name=name)}
-            )
+                secret_demands={key: SecretDemand(description=description, name=name)}
+            ),
+            default=SecretsServiceExtensionMetadata(secret_fulfillments={key: default}) if default else None,
         )
 
 

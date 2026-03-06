@@ -115,7 +115,12 @@ class MCPServiceExtensionParams(pydantic.BaseModel):
     """Server requests that the agent requires to be provided by the client."""
 
 
-class MCPServiceExtensionSpec(BaseExtensionSpec[MCPServiceExtensionParams]):
+class MCPServiceExtensionMetadata(pydantic.BaseModel):
+    mcp_fulfillments: dict[str, MCPFulfillment] = {}
+    """Provided servers corresponding to the server requests."""
+
+
+class MCPServiceExtensionSpec(BaseExtensionSpec[MCPServiceExtensionParams, MCPServiceExtensionMetadata]):
     URI: str = "https://a2a-extensions.agentstack.beeai.dev/services/mcp/v1"
 
     @classmethod
@@ -125,6 +130,7 @@ class MCPServiceExtensionSpec(BaseExtensionSpec[MCPServiceExtensionParams]):
         description: str | None = None,
         suggested: tuple[str, ...] = (),
         allowed_transports: list[_TRANSPORT_TYPES] | None = None,
+        default: MCPFulfillment | None = None,
     ) -> Self:
         return cls(
             params=MCPServiceExtensionParams(
@@ -135,13 +141,9 @@ class MCPServiceExtensionSpec(BaseExtensionSpec[MCPServiceExtensionParams]):
                         allowed_transports=allowed_transports or _DEFAULT_ALLOWED_TRANSPORTS,
                     )
                 }
-            )
+            ),
+            default=MCPServiceExtensionMetadata(mcp_fulfillments={name: default}) if default else None,
         )
-
-
-class MCPServiceExtensionMetadata(pydantic.BaseModel):
-    mcp_fulfillments: dict[str, MCPFulfillment] = {}
-    """Provided servers corresponding to the server requests."""
 
 
 class MCPServiceExtensionServer(BaseExtensionServer[MCPServiceExtensionSpec, MCPServiceExtensionMetadata]):

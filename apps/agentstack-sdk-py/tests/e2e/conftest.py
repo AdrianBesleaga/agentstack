@@ -26,7 +26,7 @@ from google.protobuf.struct_pb2 import Value
 from tenacity import AsyncRetrying, stop_after_attempt, wait_fixed
 
 from agentstack_sdk.a2a.extensions.ui.agent_detail import AgentDetail
-from agentstack_sdk.a2a.types import AgentArtifact, ArtifactChunk, InputRequired, RunYield, RunYieldResume
+from agentstack_sdk.a2a.types import AgentArtifact, AgentMessage, ArtifactChunk, InputRequired, RunYield, RunYieldResume
 from agentstack_sdk.server import Server
 from agentstack_sdk.server.context import RunContext
 from agentstack_sdk.server.store.context_store import ContextStore
@@ -42,7 +42,11 @@ def get_free_port() -> int:
 
 @asynccontextmanager
 async def run_server(
-    server: Server, port: int, context_store: ContextStore | None = None, task_timeout: timedelta | None = None
+    server: Server,
+    port: int,
+    context_store: ContextStore | None = None,
+    task_timeout: timedelta | None = None,
+    extensions: list[str] | None = None,
 ) -> AsyncGenerator[tuple[Server, Client]]:
     async with asyncio.TaskGroup() as tg:
         tg.create_task(
@@ -66,7 +70,9 @@ async def run_server(
                         card_resp = await httpx_client.get(f"{base_url}{AGENT_CARD_WELL_KNOWN_PATH}")
                         card_resp.raise_for_status()
                         card = ParseDict(card_resp.json(), AgentCard(), ignore_unknown_fields=True)
-                        client = ClientFactory(ClientConfig(httpx_client=httpx_client)).create(card=card)
+                        client = ClientFactory(ClientConfig(httpx_client=httpx_client)).create(
+                            card=card, extensions=extensions
+                        )
                 yield server, client
         finally:
             server.should_exit = True
@@ -78,7 +84,10 @@ def create_server_with_agent():
 
     @asynccontextmanager
     async def _create_server(
-        agent_fn, context_store: ContextStore | None = None, task_timeout: timedelta | None = None
+        agent_fn,
+        context_store: ContextStore | None = None,
+        task_timeout: timedelta | None = None,
+        extensions: list[str] | None = None,
     ) -> AsyncIterator[tuple[Server, Client]]:
         server = Server()
         server.agent(detail=AgentDetail(interaction_mode="multi-turn"))(agent_fn)
@@ -87,6 +96,7 @@ def create_server_with_agent():
             get_free_port(),
             context_store=context_store,
             task_timeout=task_timeout,
+            extensions=extensions,
         ) as (server, client):
             yield server, client
 
@@ -95,7 +105,7 @@ def create_server_with_agent():
 
 @pytest.fixture
 async def echo(create_server_with_agent) -> AsyncGenerator[tuple[Server, Client]]:
-    async def echo(message: Message, context: RunContext) -> AsyncGenerator[str, Message]:
+    async def echo(message: Message, context: RunContext) -> AsyncGenerator[AgentMessage, Message]:
         for part in message.parts:
             yield part.text
 
@@ -105,7 +115,7 @@ async def echo(create_server_with_agent) -> AsyncGenerator[tuple[Server, Client]
 
 @pytest.fixture
 async def slow_echo(create_server_with_agent) -> AsyncGenerator[tuple[Server, Client]]:
-    async def slow_echo(message: Message, context: RunContext) -> AsyncGenerator[str, Message]:
+    async def slow_echo(message: Message, context: RunContext) -> AsyncGenerator[AgentMessage, Message]:
         # Slower version with delay
         for part in message.parts:
             await asyncio.sleep(1)
@@ -117,9 +127,9 @@ async def slow_echo(create_server_with_agent) -> AsyncGenerator[tuple[Server, Cl
 
 @pytest.fixture
 async def awaiter(create_server_with_agent) -> AsyncGenerator[tuple[Server, Client]]:
-    async def awaiter(message: Message, context: RunContext) -> AsyncGenerator[TaskStatus | str, Message]:
+    async def awaiter(message: Message, context: RunContext) -> AsyncGenerator[TaskStatus | AgentMessage, Message]:
         # Agent that requires input
-        yield "Processing initial message..."
+        yield AgentMessage(text="Processing initial message...")
         resume_message = yield InputRequired(text="need input")
 
         yield f"Received resume: {resume_message.parts[0].text if resume_message.parts else 'empty'}"
@@ -130,9 +140,9 @@ async def awaiter(create_server_with_agent) -> AsyncGenerator[tuple[Server, Clie
 
 @pytest.fixture
 async def awaiter_with_1s_timeout(create_server_with_agent) -> AsyncGenerator[tuple[Server, Client]]:
-    async def awaiter(message: Message, context: RunContext) -> AsyncGenerator[TaskStatus | str, Message]:
+    async def awaiter(message: Message, context: RunContext) -> AsyncGenerator[TaskStatus | AgentMessage, Message]:
         # Agent that requires input
-        yield "Processing initial message..."
+        yield AgentMessage(text="Processing initial message...")
         resume_message = yield InputRequired(text="need input")
 
         yield f"Received resume: {resume_message.parts[0].text if resume_message.parts else 'empty'}"
@@ -153,7 +163,7 @@ async def failer(create_server_with_agent) -> AsyncGenerator[tuple[Server, Clien
 
 @pytest.fixture
 async def raiser(create_server_with_agent) -> AsyncGenerator[tuple[Server, Client]]:
-    async def raiser(message: Message, context: RunContext) -> AsyncGenerator[str, Message]:
+    async def raiser(message: Message, context: RunContext) -> AsyncGenerator[AgentMessage, Message]:
         # Another failing agent
         raise RuntimeError("Wrong question buddy!")
 
@@ -163,9 +173,11 @@ async def raiser(create_server_with_agent) -> AsyncGenerator[tuple[Server, Clien
 
 @pytest.fixture
 async def artifact_producer(create_server_with_agent) -> AsyncGenerator[tuple[Server, Client]]:
-    async def artifact_producer(message: Message, context: RunContext) -> AsyncGenerator[str | Artifact, Message]:
+    async def artifact_producer(
+        message: Message, context: RunContext
+    ) -> AsyncGenerator[AgentMessage | Artifact, Message]:
         # Agent producing artifacts
-        yield "Processing with artifacts"
+        yield AgentMessage(text="Processing with artifacts")
 
         # Create artifacts with proper parts structure
         yield AgentArtifact(
@@ -195,23 +207,24 @@ async def chunked_artifact_producer(create_server_with_agent) -> AsyncGenerator[
         message: Message, context: RunContext
     ) -> AsyncGenerator[str | Artifact, Message]:
         # Agent producing chunked artifacts
-        yield "Processing chunked artifacts"
+        yield AgentMessage(text="Processing chunked artifacts")
 
-        # Create a large text artifact in chunks
+        # Create a large text artifact in chunks using ArtifactChunk with shared artifact_id
+        shared_id = "chunked-artifact-1"
         yield ArtifactChunk(
-            artifact_id="1",
+            artifact_id=shared_id,
             name="large-file.txt",
             parts=[Part(text="This is the first chunk of data.\n")],
         )
 
         yield ArtifactChunk(
-            artifact_id="1",
+            artifact_id=shared_id,
             name="large-file.txt",
             parts=[Part(text="This is the second chunk of data.\n")],
         )
 
         yield ArtifactChunk(
-            artifact_id="1",
+            artifact_id=shared_id,
             name="large-file.txt",
             parts=[Part(text="This is the final chunk of data.\n")],
             last_chunk=True,

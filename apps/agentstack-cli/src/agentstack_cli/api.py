@@ -132,7 +132,11 @@ async def fetch_server_version() -> str | None:
 
 
 @asynccontextmanager
-async def a2a_client(agent_card: AgentCard, context_token: ContextToken) -> AsyncIterator[Client]:
+async def a2a_client(
+    agent_card: AgentCard,
+    context_token: ContextToken,
+    extensions: list[str] | None = None,
+) -> AsyncIterator[Client]:
     try:
         async with httpx.AsyncClient(
             headers={"Authorization": f"Bearer {context_token.token.get_secret_value()}"},
@@ -140,7 +144,7 @@ async def a2a_client(agent_card: AgentCard, context_token: ContextToken) -> Asyn
             timeout=timedelta(hours=1).total_seconds(),
         ) as httpx_client:
             yield ClientFactory(ClientConfig(httpx_client=httpx_client, use_client_preference=True)).create(
-                card=agent_card
+                card=agent_card, extensions=extensions
             )
     except A2AClientError as ex:
         card_data = json.dumps(

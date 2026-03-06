@@ -115,12 +115,12 @@ class ApprovalExtensionParams(BaseModel):
     pass
 
 
-class ApprovalExtensionSpec(BaseExtensionSpec[ApprovalExtensionParams]):
-    URI: str = "https://a2a-extensions.agentstack.beeai.dev/interactions/approval/v1"
-
-
 class ApprovalExtensionMetadata(BaseModel):
     pass
+
+
+class ApprovalExtensionSpec(BaseExtensionSpec[ApprovalExtensionParams, ApprovalExtensionMetadata]):
+    URI: str = "https://a2a-extensions.agentstack.beeai.dev/interactions/approval/v1"
 
 
 class ApprovalExtensionServer(BaseExtensionServer[ApprovalExtensionSpec, ApprovalExtensionMetadata]):
