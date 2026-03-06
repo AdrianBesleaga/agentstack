@@ -4,8 +4,8 @@ requires-python = "==3.14.*"
 
 [[package]]
 name = "a2a-sdk"
-version = "0.3.24.post54.dev0+5b354e4"
-source = { git = "https://github.com/a2aproject/a2a-python.git?rev=1.0-dev#5b354e403a717c3c6bf47a291bef028c8c6a9d94" }
+version = "0.3.24.post61.dev0+164f919"
+source = { git = "https://github.com/a2aproject/a2a-python.git?rev=1.0-dev#164f9197f101e3db5c487c4dede45b8729475a8c" }
 dependencies = [
     { name = "google-api-core" },
     { name = "googleapis-common-protos" },

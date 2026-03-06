@@ -4,8 +4,8 @@ requires-python = "==3.14.*"
 
 [[package]]
 name = "a2a-sdk"
-version = "0.3.24.post55.dev0+5955197"
-source = { git = "https://github.com/a2aproject/a2a-python.git?rev=1.0-dev#59551977d194c107c9b77aad5b251e755b22103a" }
+version = "0.3.24.post61.dev0+164f919"
+source = { git = "https://github.com/a2aproject/a2a-python.git?rev=1.0-dev#164f9197f101e3db5c487c4dede45b8729475a8c" }
 dependencies = [
     { name = "google-api-core" },
     { name = "googleapis-common-protos" },
@@ -39,6 +39,7 @@ source = { editable = "../../apps/agentstack-sdk-py" }
 dependencies = [
     { name = "a2a-sdk" },
     { name = "anyio" },
+    { name = "asgiref" },
     { name = "async-lru" },
     { name = "asyncclick" },
     { name = "authlib" },
@@ -46,6 +47,7 @@ dependencies = [
     { name = "fastapi" },
     { name = "httpx" },
     { name = "janus" },
+    { name = "jsonpatch" },
     { name = "mcp" },
     { name = "objprint" },
     { name = "opentelemetry-api" },
@@ -65,6 +67,7 @@ dependencies = [
 requires-dist = [
     { name = "a2a-sdk", git = "https://github.com/a2aproject/a2a-python.git?rev=1.0-dev" },
     { name = "anyio", specifier = ">=4.9.0" },
+    { name = "asgiref", specifier = ">=3.11.0" },
     { name = "async-lru", specifier = ">=2.0.4" },
     { name = "asyncclick", specifier = ">=8.1.8" },
     { name = "authlib", specifier = ">=1.3.0" },
@@ -72,6 +75,7 @@ requires-dist = [
     { name = "fastapi", specifier = ">=0.116.1" },
     { name = "httpx" },
     { name = "janus", specifier = ">=2.0.0" },
+    { name = "jsonpatch", specifier = ">=1.33" },
     { name = "mcp", specifier = ">=1.12.3" },
     { name = "objprint", specifier = ">=0.3.0" },
     { name = "opentelemetry-api", specifier = ">=1.35.0" },
@@ -916,6 +920,27 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/6d/9e/59f4a5b7855ced7346ebf40a2e9a8942863f644378d956f68bcef2c88b90/json-rpc-1.15.0.tar.gz", hash = "sha256:e6441d56c1dcd54241c937d0a2dcd193bdf0bdc539b5316524713f554b7f85b9", size = 28854, upload-time = "2023-06-11T09:45:49.078Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/94/9e/820c4b086ad01ba7d77369fb8b11470a01fac9b4977f02e18659cf378b6b/json_rpc-1.15.0-py2.py3-none-any.whl", hash = "sha256:4a4668bbbe7116feb4abbd0f54e64a4adcf4b8f648f19ffa0848ad0f6606a9bf", size = 39450, upload-time = "2023-06-11T09:45:47.136Z" },
+]
+
+[[package]]
+name = "jsonpatch"
+version = "1.33"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "jsonpointer" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/42/78/18813351fe5d63acad16aec57f94ec2b70a09e53ca98145589e185423873/jsonpatch-1.33.tar.gz", hash = "sha256:9fcd4009c41e6d12348b4a0ff2563ba56a2923a7dfee731d004e212e1ee5030c", size = 21699, upload-time = "2023-06-26T12:07:29.144Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/73/07/02e16ed01e04a374e644b575638ec7987ae846d25ad97bcc9945a3ee4b0e/jsonpatch-1.33-py2.py3-none-any.whl", hash = "sha256:0ae28c0cd062bbd8b8ecc26d7d164fbbea9652a1a3693f3b956c1eae5145dade", size = 12898, upload-time = "2023-06-16T21:01:28.466Z" },
+]
+
+[[package]]
+name = "jsonpointer"
+version = "3.0.0"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/6a/0a/eebeb1fa92507ea94016a2a790b93c2ae41a7e18778f85471dc54475ed25/jsonpointer-3.0.0.tar.gz", hash = "sha256:2b2d729f2091522d61c3b31f82e11870f60b68f43fbc705cb76bf4b832af59ef", size = 9114, upload-time = "2024-06-10T19:24:42.462Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/71/92/5e77f98553e9e75130c78900d000368476aed74276eb8ae8796f65f00918/jsonpointer-3.0.0-py2.py3-none-any.whl", hash = "sha256:13e088adc14fca8b6aa8177c044e12701e6ad4b28ff10e65f2267a90109c9942", size = 7595, upload-time = "2024-06-10T19:24:40.698Z" },
 ]
 
 [[package]]
