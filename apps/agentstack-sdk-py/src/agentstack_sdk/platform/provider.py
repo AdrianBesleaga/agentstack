@@ -57,7 +57,7 @@ class Provider(pydantic.BaseModel, arbitrary_types_allowed=True):
     @pydantic.field_validator("agent_card", mode="before")
     @classmethod
     def parse_card(cls: Self, value: dict[str, Any]) -> AgentCard:
-        return ParseDict(value, AgentCard())
+        return ParseDict(value, AgentCard(), ignore_unknown_fields=True)
 
     @staticmethod
     async def create(

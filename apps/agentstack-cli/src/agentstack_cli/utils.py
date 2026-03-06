@@ -303,7 +303,7 @@ def verbosity(verbose: bool, show_success_status: bool = True):
 
 
 def print_log(line, ansi_mode=False, out_console: Console | None = None):
-    if "error" in line:
+    if line.get("error"):
 
         class CustomError(Exception): ...
 

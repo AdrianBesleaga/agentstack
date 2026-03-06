@@ -51,8 +51,9 @@ class PlatformAuthenticatedUser(User, BaseUser):
     @override
     def display_name(self) -> str:
         name = self.claims.get("name", None)
-        assert name and isinstance(name, str)
-        return name
+        if name and isinstance(name, str):
+            return name
+        return self.user_name
 
     @property
     @override

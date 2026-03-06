@@ -332,7 +332,7 @@ class ProxyRequestHandler(RequestHandler):
     ) -> TaskPushNotificationConfig:
         await self._check_task(params.task_id)
         async with self._client_transport(context) as transport:
-            return await transport.set_task_callback(params)
+            return await transport.create_task_push_notification_config(params, context=self._forward_context(context))
 
     @_handle_exception
     @override
@@ -343,7 +343,7 @@ class ProxyRequestHandler(RequestHandler):
     ) -> TaskPushNotificationConfig:
         await self._check_task(params.task_id)
         async with self._client_transport(context) as transport:
-            return await transport.get_task_callback(params, context=self._forward_context(context))
+            return await transport.get_task_push_notification_config(params, context=self._forward_context(context))
 
     @_handle_exception
     @override

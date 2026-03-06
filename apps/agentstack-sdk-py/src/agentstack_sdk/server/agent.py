@@ -668,7 +668,8 @@ class Executor(AgentExecutor):
                         await run.cancel(request_context=request_context, event_queue=queue)
                         # the original request queue is closed at this point, we need to propagate state to store manually
                         manager = TaskManager(
-                            task_id=task_id, context_id=context_id, task_store=self._task_store, initial_message=None
+                            task_id=task_id, context_id=context_id, task_store=self._task_store, initial_message=None,
+                            context=request_context.call_context,
                         )
                         event = await queue.dequeue_event(no_wait=True)
                         if (

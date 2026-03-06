@@ -70,7 +70,7 @@ async def _get_agent_card(agent_url: str):
     async with httpx.AsyncClient(timeout=None) as httpx_client:
         card_resp = await httpx_client.get(f"{agent_url}{AGENT_CARD_WELL_KNOWN_PATH}")
         card_resp.raise_for_status()
-        card = ParseDict(card_resp.json(), AgentCard())
+        card = ParseDict(card_resp.json(), AgentCard(), ignore_unknown_fields=True)
         return card
 
 

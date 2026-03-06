@@ -46,9 +46,11 @@ from a2a.types.a2a_pb2 import (
 )
 from a2a.utils import (
     AGENT_CARD_WELL_KNOWN_PATH,
-    EXTENDED_AGENT_CARD_PATH,
-    PREV_AGENT_CARD_WELL_KNOWN_PATH,
 )
+
+# These constants were removed in a2a-sdk v1; tests using them are skipped
+EXTENDED_AGENT_CARD_PATH = "/agent/authenticatedExtendedCard"
+PREV_AGENT_CARD_WELL_KNOWN_PATH = "/.well-known/agent.json"
 from a2a.utils.errors import UnsupportedOperationError
 from fastapi import FastAPI
 from google.protobuf.struct_pb2 import Struct, Value
@@ -484,7 +486,7 @@ def test_cancel_task(client: Client, handler: mock.AsyncMock, ensure_mock_task):
     handler.on_cancel_task.return_value = task
 
     # Send request
-    response = client.post(  # noqa: ASYNC212
+    response = client.post(
         "/",
         json={
             "jsonrpc": "2.0",
@@ -511,7 +513,7 @@ def test_get_task(client: Client, handler: mock.AsyncMock, ensure_mock_task):
     handler.on_get_task.return_value = task
 
     # Send request
-    response = client.post(  # noqa: ASYNC212
+    response = client.post(
         "/",
         json={
             "jsonrpc": "2.0",
@@ -1101,7 +1103,7 @@ async def test_unknown_task_raises_error(create_test_server, handler: mock.Async
 
     # Send message with non-existing task
     client.auth = test_admin
-    response = client.post(  # noqa: ASYNC212
+    response = client.post(
         "/",
         json={
             "jsonrpc": "2.0",
@@ -1141,7 +1143,7 @@ async def test_task_ownership_new_task_creation_via_message_send(
 
     # Send message as admin which should create new task ownership
     client.auth = test_admin
-    response = client.post(  # noqa: ASYNC212
+    response = client.post(
         "/",
         json={
             "jsonrpc": "2.0",
@@ -1175,7 +1177,7 @@ async def test_task_ownership_new_task_creation_via_message_send(
     task = Task(id="new-task-123", context_id="ctx1", status=task_status)
     handler.on_get_task.return_value = task
 
-    response = client.post(  # noqa: ASYNC212
+    response = client.post(
         "/",
         json={"jsonrpc": "2.0", "id": "124", "method": "GetTask", "params": {"id": "new-task-123"}},
     )
@@ -1185,7 +1187,7 @@ async def test_task_ownership_new_task_creation_via_message_send(
 
     # Verify default user cannot access it
     client.auth = test_user
-    response = client.post(  # noqa: ASYNC212
+    response = client.post(
         "/",
         json={"jsonrpc": "2.0", "id": "125", "method": "GetTask", "params": {"id": "new-task-123"}},
     )
@@ -1208,7 +1210,7 @@ async def test_context_ownership_cannot_be_claimed_by_different_user(
     mock_task = Task(id="task-ctx-1", context_id="shared-context-789", status=task_status)
     handler.on_message_send.return_value = mock_task
 
-    response = client.post(  # noqa: ASYNC212
+    response = client.post(
         "/",
         json={
             "jsonrpc": "2.0",
@@ -1244,7 +1246,7 @@ async def test_context_ownership_cannot_be_claimed_by_different_user(
     )
     handler.on_message_send.return_value = mock_task2
 
-    response = client.post(  # noqa: ASYNC212
+    response = client.post(
         "/",
         json={
             "jsonrpc": "2.0",
@@ -1291,7 +1293,7 @@ async def test_task_update_last_accessed_at(create_test_server, handler: mock.As
         },
     }
 
-    response = client.post("/", json=message_data)  # noqa: ASYNC212
+    response = client.post("/", json=message_data)
     # Get initial timestamp
     result = await db_transaction.execute(
         text("SELECT last_accessed_at FROM a2a_request_tasks WHERE task_id = :task_id"), {"task_id": "task1"}
@@ -1306,7 +1308,7 @@ async def test_task_update_last_accessed_at(create_test_server, handler: mock.As
     task = Task(id="task1", context_id="ctx1", status=task_status)
     handler.on_get_task.return_value = task
 
-    response = client.post("/", json=message_data)  # noqa: ASYNC212
+    response = client.post("/", json=message_data)
     assert response.status_code == 200
 
     # Check that timestamp was updated
@@ -1342,11 +1344,11 @@ async def test_task_and_context_both_specified_single_query(
             }
         },
     }
-    response = client.post("/", json=message_data)  # noqa: ASYNC212
+    response = client.post("/", json=message_data)
     assert response.status_code == 200
     message_data["params"]["message"]["taskId"] = "dual-task-123"
 
-    response = client.post("/", json=message_data)  # noqa: ASYNC212
+    response = client.post("/", json=message_data)
     assert response.status_code == 200
 
     # Verify both were recorded in database
@@ -1388,7 +1390,7 @@ async def test_invalid_request_raises_a2a_error(create_test_server, handler: moc
             }
         },
     }
-    response = client.post("/", json=message_data)  # noqa: ASYNC212
+    response = client.post("/", json=message_data)
     assert response.status_code == 200
     data = response.json()
     assert data["id"] == "123"

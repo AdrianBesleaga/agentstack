@@ -86,7 +86,7 @@ class DockerImageProviderLocation(RootModel):
         if DOCKER_MANIFEST_LABEL_NAME not in labels:
             raise MissingAgentCardLabelError(str(self.root))
         data = json.loads(base64.b64decode(labels[DOCKER_MANIFEST_LABEL_NAME]))
-        ParseDict(data, AgentCard())  # try at least parsing card, TODO: validation of required fields
+        ParseDict(data, AgentCard(), ignore_unknown_fields=True)  # try at least parsing card, TODO: validation of required fields
         return data
 
 
