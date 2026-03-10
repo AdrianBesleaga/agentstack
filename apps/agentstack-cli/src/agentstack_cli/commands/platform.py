@@ -254,7 +254,7 @@ async def start_cmd(
         raise FileNotFoundError(f"Values file {values_file} not found.")
 
     with verbosity(verbose):
-        version = importlib.metadata.version("agentstack-cli")
+        version = importlib.metadata.version("agentstack-cli").replace("rc", "-rc")
         arch = "x86_64" if platform_module.machine().lower() in ["x86_64", "amd64"] else "aarch64"
         Configuration().home.mkdir(exist_ok=True)
         match detect_driver():
