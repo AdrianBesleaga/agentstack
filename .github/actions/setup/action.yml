@@ -44,7 +44,7 @@ runs:
             PACKAGES="$PACKAGES qemu-system-arm qemu-efi-aarch64"
           fi
           if [ "${{ inputs.install_vm_deps }}" = "build" ]; then
-            PACKAGES="$PACKAGES xorriso"
+            PACKAGES="$PACKAGES xorriso libguestfs-tools"
           fi
           sudo apt-get install -qqy --no-install-recommends $PACKAGES
           sudo modprobe kvm || true
