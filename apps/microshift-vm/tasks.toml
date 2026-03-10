@@ -53,8 +53,8 @@ if [ ! -f "$EFI_CODE" ]; then
   exit 1
 fi
 
-packer init .
-packer build \
+PACKER_LOG=1 packer init .
+PACKER_LOG=1 packer build \
   -var "arch=$ARCH" \
   -var "output_dir=./dist" \
   -var "efi_code=$EFI_CODE" \
