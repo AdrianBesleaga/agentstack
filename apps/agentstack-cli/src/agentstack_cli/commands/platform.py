@@ -46,7 +46,7 @@ configuration = Configuration()
 
 @functools.cache
 def detect_driver() -> typing.Literal["lima", "wsl"]:
-    has_lima = (importlib.resources.files("agentstack_cli") / "data" / "limactl").is_file() or shutil.which("limactl")
+    has_lima = (importlib.resources.files("agentstack_cli") / "data" / "bin" / "limactl").is_file() or shutil.which("limactl")
     arch = "aarch64" if platform_module.machine().lower() == "arm64" else platform_module.machine().lower()
 
     if platform_module.system() == "Windows" or shutil.which("wsl.exe"):
@@ -89,7 +89,7 @@ def detect_export_import_paths() -> tuple[str, str]:
 
 @functools.cache
 def detect_limactl() -> str:
-    bundled = importlib.resources.files("agentstack_cli") / "data" / "limactl"
+    bundled = importlib.resources.files("agentstack_cli") / "data" / "bin" / "limactl"
     return str(bundled) if bundled.is_file() else str(shutil.which("limactl"))
 
 
