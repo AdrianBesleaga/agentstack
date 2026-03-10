@@ -395,10 +395,24 @@ async def start_cmd(
                     )
                     install_dir = Configuration().home / "wsl" / vm_name
                     install_dir.mkdir(parents=True, exist_ok=True)
-                    await run_command(
-                        ["wsl.exe", "--import", vm_name, str(install_dir), current_wsl_image],
-                        "Importing a WSL distribution",
-                    )
+                    if current_wsl_image.startswith("http://") or current_wsl_image.startswith("https://"):
+                        with tempfile.NamedTemporaryFile(suffix=".wsl", delete=True, delete_on_close=False) as tmp:
+                            with console.status(f"Downloading WSL image from {current_wsl_image}...", spinner="dots"):
+                                async with httpx.AsyncClient(follow_redirects=True) as client:
+                                    async with client.stream("GET", current_wsl_image) as response:
+                                        response.raise_for_status()
+                                        async for chunk in response.aiter_bytes():
+                                            tmp.write(chunk)
+                            tmp.close()
+                            await run_command(
+                                ["wsl.exe", "--import", vm_name, str(install_dir), tmp.name],
+                                "Importing a WSL distribution",
+                            )
+                    else:
+                        await run_command(
+                            ["wsl.exe", "--import", vm_name, str(install_dir), current_wsl_image],
+                            "Importing a WSL distribution",
+                        )
 
                     await run_in_vm(
                         vm_name,
