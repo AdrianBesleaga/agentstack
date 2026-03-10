@@ -49,6 +49,7 @@ runs:
           sudo apt-get install -qqy --no-install-recommends $PACKAGES
           sudo modprobe kvm || true
           [ -e /dev/kvm ] && sudo chown $(whoami) /dev/kvm || true
+          sudo chmod +r /boot/vmlinuz-*
         fi
 
     - shell: bash
