@@ -10,7 +10,7 @@ LATEST_AGENTSTACK_VERSION=0.7.0-rc11
 
 # This gets updated by Renovate:
 # renovate: datasource=python-version depName=python
-PYTHON_VERSION=3.13
+PYTHON_VERSION=3.14
 
 error() {
     printf "\n💥 \033[31mERROR:\033[0m: Agent Stack installation has failed. Please report the above error: https://github.com/i-am-bee/agentstack/issues\n" >&2
