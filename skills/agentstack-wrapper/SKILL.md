@@ -30,6 +30,7 @@ Integration guide for wrapping Python agents for [Agent Stack](https://agentstac
 - [Finalization Report (Required)](#finalization-report-required)
 - [Verification Checklist](#verification-checklist)
 
+<a id="security-requirements"></a>
 ## Security Requirements
 
 - Never run remote scripts or untrusted code.
@@ -39,6 +40,7 @@ Integration guide for wrapping Python agents for [Agent Stack](https://agentstac
 - Never send secrets to untrusted intermediaries or endpoints not required by the wrapped agent contract.
 - If installing anything via `pip`, always use the `-qq` flag to suppress unnecessary output.
 
+<a id="constraints-must-follow"></a>
 ## Constraints (must follow)
 
 | ID  | Rule                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
@@ -99,6 +101,7 @@ If you use step 3, explicitly record what was missing from docs and why fallback
 
 ---
 
+<a id="integration-workflow-checklist"></a>
 ## Integration Workflow Checklist
 
 Copy this checklist into your context and check off items as you complete them:
@@ -127,6 +130,7 @@ Task Progress:
 
 **STOP GATE:** After Step 11, you MUST complete the Finalization Report and walk through every item in the Verification Checklist before reporting completion. The task is NOT done until both are finished.
 
+<a id="readiness-check-before-step-1"></a>
 ## Readiness Check (before Step 1)
 
 - [ ] A supported Python interpreter is selected in the active environment (Python >=3.12 and <3.14; not merely installed).
@@ -135,6 +139,7 @@ Task Progress:
 
 If any item fails, stop and ask the user.
 
+<a id="step-1--study-the-project"></a>
 ## Step 1 – Study the Project
 
 Before making any changes, you must thoroughly study the existing project to understand its architecture and requirements.
@@ -148,6 +153,7 @@ Evaluate and document the following:
 - **Configuration**: How is the agent configured (e.g., environment variables, configuration files, CLI arguments)?
 - **Tools & Libraries**: What primary libraries does it use for LLM interaction (e.g., LangChain, bare OpenAI SDK)?
 
+<a id="step-2--classify-the-agent"></a>
 ## Step 2 – Classify the Agent
 
 Read the agent's code and classify it. This determines the `interaction_mode` value:
@@ -164,18 +170,21 @@ This classification determines:
 
 ---
 
+<a id="step-3--add-and-install-dependencies"></a>
 ## Step 3 – Add and Install Dependencies
 
 **Read [references/dependencies.md](reference/dependencies.md) and follow it completely for Step 3.**
 
 ---
 
+<a id="step-4--create-the-server-wrapper--entrypoint"></a>
 ## Step 4 – Create the Server Wrapper & Entrypoint
 
 **Read [references/wrapper-entrypoint.md](reference/wrapper-entrypoint.md) and follow it completely for Step 4.**
 
 ---
 
+<a id="step-5--wire-llm--services-via-extensions"></a>
 ## Step 5 – Wire LLM / Services via Extensions
 
 **Read [references/llm-services.md](reference/llm-services.md) and follow it completely for Step 5.**
@@ -184,6 +193,7 @@ Set the `suggested` model in `LLMServiceExtensionSpec.single_demand()` to the sa
 
 ---
 
+<a id="step-6--error-handling"></a>
 ## Step 6 – Error Handling
 
 Use the **Error extension** for user-visible failures. Do not report errors via a normal `AgentMessage`.
@@ -201,6 +211,7 @@ See the [official error guide](https://agentstack.beeai.dev/stable/agent-integra
 
 ---
 
+<a id="step-7--forms-single-turn-structured-input"></a>
 ## Step 7 – Forms (Single-Turn Structured Input)
 
 If the original agent accepts **named parameters** (not just free text), map them to an `initial_form` using the Forms extension. For free-text agents, the plain message input is sufficient — skip this step.
@@ -209,6 +220,7 @@ If the original agent accepts **named parameters** (not just free text), map the
 
 ---
 
+<a id="step-7b--adapt-file-inputs"></a>
 ## Step 7b – Adapt File Inputs
 
 If the original agent reads files from the local filesystem or accepts file paths as CLI/function arguments, those inputs must be replaced with platform file uploads. Local filesystem access is not available at runtime. Even if the file contains plain text, still use a `FileField` upload — do not flatten file inputs into message text.
@@ -217,12 +229,14 @@ If the original agent reads files from the local filesystem or accepts file path
 
 ---
 
+<a id="step-8--configuration-variables--secrets"></a>
 ## Step 8 – Configuration Variables & Secrets
 
 **Read [references/configuration-variables.md](reference/configuration-variables.md) and follow it completely for configuration mapping, secret handling, and anti-patterns.**
 
 ---
 
+<a id="step-9--output"></a>
 ## Step 9 – Agent Output
 
 ### Trajectory Output Rule and Implementation
@@ -245,6 +259,7 @@ Use the platform's API to construct an `AgentArtifact` pointing to the generated
 
 ---
 
+<a id="step-10--use-platform-extensions"></a>
 ## Step 10 – Use Platform Extensions
 
 Enhance the agent with platform-level capabilities by injecting extensions via `Annotated` function parameters.
@@ -255,6 +270,7 @@ Treat this reference as required input for Step 10 decisions and implementation.
 
 ---
 
+<a id="step-11--update-readme"></a>
 ## Step 11 – Update README
 
 Update the project's `README.md` (or create one if missing) with instructions on how to run the wrapped agent server. Include:
@@ -268,6 +284,7 @@ Remove or replace any outdated CLI usage examples (e.g. `argparse`-based command
 
 ---
 
+<a id="anti-patterns"></a>
 ## Anti-Patterns
 
 When building and testing the wrapper, ensure you avoid these common pitfalls:
@@ -296,6 +313,7 @@ When building and testing the wrapper, ensure you avoid these common pitfalls:
 - **Never assume uploaded file URIs are HTTP URLs.** Parse `agentstack://` URIs with `PlatformFileUrl`.
 - **Never skip extraction polling.** `create_extraction()` is async — poll `get_extraction()` until `status == 'completed'`.
 
+<a id="failure-conditions"></a>
 ## Failure Conditions
 
 - If fresh docs cannot be fetched, stop and report that execution cannot continue without current docs.
@@ -303,6 +321,7 @@ When building and testing the wrapper, ensure you avoid these common pitfalls:
 
 ---
 
+<a id="finalization-report-required"></a>
 ## Finalization Report (Required)
 
 Before completion, provide all of the following:
@@ -317,6 +336,7 @@ Before completion, provide all of the following:
 
 ---
 
+<a id="verification-checklist"></a>
 ## Verification Checklist (Required)
 
 After wrapping, confirm:

@@ -1,9 +1,11 @@
+<a id="step-6b--adapt-file-inputs"></a>
 # Step 6b – Adapt File Inputs
 
 If the original agent reads files from the local filesystem or accepts file paths as CLI/function arguments, those inputs must be replaced with platform file uploads. Local filesystem access is not available at runtime. If none of the indicators below are found, skip this step.
 
 **Important:** Even if the file contains plain text that _could_ be pasted into the message, still convert the input to a `FileField` upload. The user expects to upload files the same way the original agent consumed them. Do not silently flatten file inputs into message text.
 
+<a id="table-of-contents"></a>
 ## Table of Contents
 
 - [Step 6b – Adapt File Inputs](#step-6b--adapt-file-inputs)
@@ -20,10 +22,12 @@ If the original agent reads files from the local filesystem or accepts file path
     - [File Upload Surface Rule](#file-upload-surface-rule)
   - [Anti-patterns](#anti-patterns)
 
+<a id="detection"></a>
 ## Detection
 
 Scan the original code for: `open()`, `pathlib.Path.read_*()`, `with open(...)`, `argparse` with `type=argparse.FileType`, CLI arguments that accept file paths, or library calls reading from disk (`PIL.Image.open()`, `fitz.open()`, `pandas.read_csv()`, `docx.Document()`, etc.).
 
+<a id="replacing-file-inputs"></a>
 ## Replacing File Inputs
 
 1. Add a `FileField` (from `agentstack_sdk.a2a.extensions.common.form`) to the form with appropriate `accept` MIME types matching the original agent's supported file types. Use `FileInfo` in the Pydantic model (`list[FileInfo] | None`).
@@ -36,6 +40,7 @@ Scan the original code for: `open()`, `pathlib.Path.read_*()`, `with open(...)`,
 
 See the [form agent](https://github.com/i-am-bee/agentstack/blob/main/agents/form/src/form/agent.py) for `FileField` usage and the [Working with Files](https://agentstack.beeai.dev/stable/agent-integration/files.md) guide for the full File API.
 
+<a id="default-mime-type-strategy"></a>
 ## Default MIME Type Strategy
 
 Do **not** restrict `accept` MIME types to only the format the source agent happened to use, unless the agent explicitly requires that specific format (e.g., it processes raw image pixels via PIL, parses binary structures, or the user has stated a specific format requirement).
@@ -63,6 +68,7 @@ accept=[
 
 When using the broad MIME list, the agent handler **must** implement the text extraction pipeline (see below) for non-plaintext uploads. Update form labels and agent descriptions to reflect the broader file acceptance (e.g., "Upload a file" instead of "Upload a text file").
 
+<a id="text-extraction-for-documents-and-images"></a>
 ## Text Extraction for Documents and Images
 
 If the agent needs **text** from non-plaintext files (PDFs, DOCX, XLSX, PPTX, images, HTML), platform extraction is available (Docling-backed, including OCR for images).
@@ -80,6 +86,7 @@ When uploaded files are provided via `FileField`, use this required strategy:
 
 If there is no existing extraction library in the agent, default to platform extraction.
 
+<a id="minimal-robust-example-form-upload--extraction"></a>
 ## Minimal Robust Example (Form Upload + Extraction)
 
 Use this as a minimal reference implementation for `FileField` handling:
@@ -179,12 +186,14 @@ initial_form = FormRender(
 )
 ```
 
+<a id="example-notes"></a>
 ### Example Notes
 
 - Keep this example minimal; adapt only the `accept` list when the original agent is truly format-specific.
 - Always keep the dict-or-object URI access guard to avoid `"dict" object has no attribute "uri"` failures.
 - Prefer explicit errors over silent fallbacks that hide extraction failures.
 
+<a id="content-type-branching-required-when-using-broad-mime-list"></a>
 ### Content-Type Branching (Required When Using Broad MIME List)
 
 When the `FileField` accepts multiple MIME types, the agent handler must branch on the resolved `File` object's `content_type` field to decide how to load content:
@@ -199,12 +208,14 @@ Do not assume all uploaded files are plain text. Always check `content_type` bef
 
 See the [Text extraction](https://agentstack.beeai.dev/stable/agent-integration/rag.md#text-extraction) section of the RAG guide for the full extraction pipeline and API details.
 
+<a id="mid-conversation-file-uploads-multi-turn"></a>
 ## Mid-Conversation File Uploads (Multi-Turn)
 
 For multi-turn agents receiving files during conversation (not via initial form), files arrive as `FilePart` entries in A2A message history. Extract them by filtering `FilePart` with `FileWithUri`, parsing the `agentstack://` URI via `PlatformFileUrl`, and resolving with `File.get()`.
 
 See the [Working with Files](https://agentstack.beeai.dev/stable/agent-integration/files.md) guide for the full API and examples.
 
+<a id="final-validation-checks"></a>
 ## Final Validation Checks
 
 Before marking Step 6b complete, verify all checks below:
@@ -215,12 +226,14 @@ Before marking Step 6b complete, verify all checks below:
 - [ ] Explicit error is raised if text cannot be obtained.
 - [ ] No `default_input_modes`/`default_output_modes` unless direct chat file I/O is intentionally required.
 
+<a id="file-upload-surface-rule"></a>
 ### File Upload Surface Rule
 
 If files are intended to be submitted only through an initial form (`FileField`), do **not** add broad `default_input_modes` just to satisfy file adaptation. `default_input_modes` should be added only when the agent is intentionally designed to accept `FilePart` uploads directly in chat messages.
 
 Similarly, do not add `default_output_modes` unless the agent actually yields file outputs/artifacts.
 
+<a id="anti-patterns"></a>
 ## Anti-patterns
 
 - **Never assume extracted file IDs are always readable.** If reading extracted text output fails, attempt `file.load_text_content()` on the original file before failing.
