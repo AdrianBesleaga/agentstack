@@ -18,7 +18,6 @@ from agentstack_sdk.a2a.extensions import (
 from agentstack_sdk.a2a.types import AgentArtifact
 from agentstack_sdk.server import Server
 from agentstack_sdk.server.context import RunContext
-from agentstack_sdk.server.middleware.platform_auth_backend import PlatformAuthBackend
 from openai import AsyncOpenAI
 from openai.types.chat import ChatCompletionMessageParam
 
@@ -145,8 +144,6 @@ def serve():
         server.run(
             host=os.getenv("HOST", "127.0.0.1"),
             port=int(os.getenv("PORT", 10002)),
-            configure_telemetry=True,
-            auth_backend=PlatformAuthBackend(),
         )
     except KeyboardInterrupt:
         pass

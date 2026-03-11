@@ -47,7 +47,7 @@ For telemetry to flow successfully, it must be enabled at three levels:
    </Step>
 
    <Step title="The Python SDK">
-  The server must be configured to export that data by setting `configure_telemetry=True`.
+  Telemetry export is enabled by default. You can disable it by setting `configure_telemetry=False` in `server.run()`.
    </Step>
 
    <Step title="The Agent Stack Platform">
@@ -59,7 +59,7 @@ For telemetry to flow successfully, it must be enabled at three levels:
 ## Agent SDK Configuration
 Before configuring an observability platform, your agent code must be "telemetry-aware." This configuration applies to all implementations, whether you are using local Phoenix or a cloud provider like Langfuse.
 
-You must initialize instrumentation at the agent logic level and enable the export flag in the Agent Stack SDK:
+You must initialize instrumentation at the agent logic level. Telemetry export to the platform collector is enabled by default:
 
 ```python
 from agentstack_sdk.server import Server
@@ -72,11 +72,11 @@ from agentstack_sdk.server import Server
 server = Server()
 
 @server.agent()
-async def my_agent(): 
+async def my_agent():
     ...
 
-# 2. SDK Level: Enable the bridge to the platform collector
-server.run(configure_telemetry=True)
+# 2. SDK Level: telemetry export is enabled by default
+server.run()
 ```
 
 <Tip>

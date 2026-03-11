@@ -12,7 +12,7 @@ When building conversational AI agents, one of the key requirements is maintaini
 | **await context.store(input)** | Stores current user message in conversation history. Storage of messages must be explicitly requested|
 | **await context.store(response)** | Stores agent’s responses in conversation history, and must be explicitly requested |
 | **context: RunContext)** | Sets up a RunContext instance for storing and accessing the conversation history |
-| **context_store=PlatformContextStore()** | Configures server to use the platform’s persistent context store to maintain conversation history across agent restarts | 
+| **context_store** | Configures the context store used to persist conversation history. Defaults to `PlatformContextStore()` for persistent storage across agent restarts. |
 
 
 ## Simple History Access Example
@@ -306,22 +306,22 @@ This advanced example demonstrates several key concepts:
 
 ### Persistent Storage Example
 
-By default, conversation history is stored in memory and is lost when the agent process restarts. For production applications, you'll want to use persistent context storage to maintain conversation history across agent restarts. The `PlatformContextStore` automatically handles conversation persistence, ensuring that users can continue their conversations even after agent restarts or deployments.
+Conversation history is automatically persisted using `PlatformContextStore` by default, ensuring users can continue their conversations even after agent restarts or deployments. No extra configuration is needed:
 
 ```python
 import os
 from agentstack_sdk.server import Server
-from agentstack_sdk.server.store.platform_context_store import PlatformContextStore
 
 server = Server()
 
 def run():
     server.run(
-        host=os.getenv("HOST", "127.0.0.1"), 
+        host=os.getenv("HOST", "127.0.0.1"),
         port=int(os.getenv("PORT", 8000)),
-        context_store=PlatformContextStore()
     )
 ```
+
+To opt out of persistent storage and use in-memory history only, pass `context_store=InMemoryContextStore()` explicitly.
 
 
 

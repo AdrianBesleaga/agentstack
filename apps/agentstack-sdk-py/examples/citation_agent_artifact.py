@@ -16,7 +16,6 @@ from agentstack_sdk.a2a.extensions import (
 from agentstack_sdk.a2a.types import AgentArtifact
 from agentstack_sdk.server import Server
 from agentstack_sdk.server.context import RunContext
-from agentstack_sdk.server.store.platform_context_store import PlatformContextStore
 
 server = Server()
 
@@ -71,7 +70,7 @@ and generating human-like text."""
 
 def run():
     server.run(
-        host=os.getenv("HOST", "127.0.0.1"), port=int(os.getenv("PORT", 8002)), context_store=PlatformContextStore()
+        host=os.getenv("HOST", "127.0.0.1"), port=int(os.getenv("PORT", 8002))
     )
 
 

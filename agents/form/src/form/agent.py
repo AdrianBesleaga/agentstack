@@ -24,7 +24,6 @@ from agentstack_sdk.a2a.extensions.services.form import (
     FormServiceExtensionSpec,
 )
 from agentstack_sdk.server import Server
-from agentstack_sdk.server.middleware.platform_auth_backend import PlatformAuthBackend
 from pydantic import BaseModel
 
 agent_detail_extension_spec = agentstack_sdk.a2a.extensions.AgentDetailExtensionSpec(
@@ -119,8 +118,6 @@ def serve():
         server.run(
             host=os.getenv("HOST", "127.0.0.1"),
             port=int(os.getenv("PORT", 10001)),
-            configure_telemetry=True,
-            auth_backend=PlatformAuthBackend(),
         )
     except KeyboardInterrupt:
         pass
