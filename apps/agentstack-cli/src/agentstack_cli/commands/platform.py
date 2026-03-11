@@ -420,16 +420,6 @@ async def start_cmd(
                     [
                         "bash",
                         "-c",
-                        "rm /etc/resolv.conf && cp /etc/resolv.conf-override /etc/resolv.conf && chattr +i /etc/resolv.conf",
-                    ],
-                    "Setting up DNS configuration",
-                    check=False,
-                )
-                await run_in_vm(
-                    vm_name,
-                    [
-                        "bash",
-                        "-c",
                         "echo $(ip route show | grep -i default | cut -d' ' -f3) host.docker.internal >> /etc/hosts",
                     ],
                     "Setting up internal networking",
