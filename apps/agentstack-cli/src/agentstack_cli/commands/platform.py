@@ -397,7 +397,7 @@ async def start_cmd(
                     install_dir.mkdir(parents=True, exist_ok=True)
                     if current_wsl_image.startswith("http://") or current_wsl_image.startswith("https://"):
                         with tempfile.NamedTemporaryFile(suffix=".wsl", delete=True, delete_on_close=False) as tmp:
-                            with console.status(f"Downloading WSL image from {current_wsl_image}...", spinner="dots"):
+                            with console.status("Downloading WSL distribution...", spinner="dots"):
                                 async with httpx.AsyncClient(follow_redirects=True) as client:
                                     async with client.stream("GET", current_wsl_image) as response:
                                         response.raise_for_status()
@@ -406,26 +406,25 @@ async def start_cmd(
                             tmp.close()
                             await run_command(
                                 ["wsl.exe", "--import", vm_name, str(install_dir), tmp.name],
-                                "Importing a WSL distribution",
+                                "Importing WSL distribution",
                             )
                     else:
                         await run_command(
                             ["wsl.exe", "--import", vm_name, str(install_dir), current_wsl_image],
-                            "Importing a WSL distribution",
+                            "Importing WSL distribution",
                         )
-
-                    await run_in_vm(
-                        vm_name,
-                        [
-                            "bash",
-                            "-c",
-                            "rm /etc/resolv.conf && mv /etc/resolv.conf-override /etc/resolv.conf && chattr +i /etc/resolv.conf",
-                        ],
-                        "Setting up DNS configuration",
-                        check=False,
-                    )
                     await run_command(["wsl.exe", "--terminate", vm_name], "Restarting Agent Stack VM")
                 await run_in_vm(vm_name, ["/usr/bin/setsid", "-f", "/usr/bin/sleep", "infinity"], "Ensuring persistence of Agent Stack VM")
+                await run_in_vm(
+                    vm_name,
+                    [
+                        "bash",
+                        "-c",
+                        "rm /etc/resolv.conf && cp /etc/resolv.conf-override /etc/resolv.conf && chattr +i /etc/resolv.conf",
+                    ],
+                    "Setting up DNS configuration",
+                    check=False,
+                )
                 await run_in_vm(
                     vm_name,
                     [
