@@ -1,6 +1,6 @@
 [project]
 name = "canvas"
-version = "0.7.0-rc14"
+version = "0.7.0-rc15"
 description = "Agent with canvas extension."
 authors = [
     { name = "IBM Corp." },
