@@ -8,8 +8,8 @@ resolution-markers = [
 
 [[package]]
 name = "a2a-sdk"
-version = "0.3.24.post54.dev0+5b354e4"
-source = { git = "https://github.com/a2aproject/a2a-python.git?rev=1.0-dev#5b354e403a717c3c6bf47a291bef028c8c6a9d94" }
+version = "0.3.25.post77.dev0+87b9fd6"
+source = { git = "https://github.com/a2aproject/a2a-python.git?rev=1.0-dev#87b9fd67bdc2552659784f5748df71a8ea2262e6" }
 dependencies = [
     { name = "google-api-core" },
     { name = "googleapis-common-protos" },

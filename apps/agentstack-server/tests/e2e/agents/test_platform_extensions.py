@@ -10,7 +10,7 @@ from uuid import uuid4
 
 import pytest
 from a2a.client import Client, create_text_message_object
-from a2a.types import Message, Role, TaskState
+from a2a.types import SendMessageRequest, Message, Role, TaskState
 from agentstack_sdk.a2a.extensions.services.platform import (
     PlatformApiExtensionClient,
     PlatformApiExtensionServer,
@@ -83,7 +83,7 @@ async def test_platform_api_extension(file_reader_writer_factory, permissions, s
         )
 
         # send message
-        task = await get_final_task_from_stream(client.send_message(message))
+        task = await get_final_task_from_stream(client.send_message(SendMessageRequest(message=message)))
 
         if should_fail:
             assert task.status.state == TaskState.TASK_STATE_FAILED
@@ -123,7 +123,7 @@ async def test_self_registration_with_variables(
 ):
     os.environ.pop(SELF_REGISTRATION_TEST_VAR_NAME, None)
     _, client = self_registration_agent
-    task = await get_final_task_from_stream(client.send_message(create_text_message_object(content="hi")))
+    task = await get_final_task_from_stream(client.send_message(SendMessageRequest(message=create_text_message_object(content="hi"))))
     assert task.history[-1].parts[0].text == "empty"
 
     with subtests.test("register provider"):
@@ -141,7 +141,7 @@ async def test_self_registration_with_variables(
 
         async for attempt in AsyncRetrying(stop=stop_after_delay(6), wait=wait_fixed(0.5), reraise=True):
             with attempt:
-                task = await get_final_task_from_stream(client.send_message(create_text_message_object(content="hi")))
+                task = await get_final_task_from_stream(client.send_message(SendMessageRequest(message=create_text_message_object(content="hi"))))
                 assert task.history[-1].parts[0].text == "test"
 
     with subtests.test("remove provider variable"):
@@ -149,5 +149,5 @@ async def test_self_registration_with_variables(
 
         async for attempt in AsyncRetrying(stop=stop_after_delay(6), wait=wait_fixed(0.5), reraise=True):
             with attempt:
-                task = await get_final_task_from_stream(client.send_message(create_text_message_object(content="hi")))
+                task = await get_final_task_from_stream(client.send_message(SendMessageRequest(message=create_text_message_object(content="hi"))))
                 assert task.history[-1].parts[0].text == "empty"
