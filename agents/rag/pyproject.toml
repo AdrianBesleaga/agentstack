@@ -1,6 +1,6 @@
 [project]
 name = "rag"
-version = "0.7.0-rc16"
+version = "0.7.0-rc17"
 description = "TBD"
 authors = [
     { name = "IBM Corp." },
