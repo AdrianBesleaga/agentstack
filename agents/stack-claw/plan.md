@@ -4,63 +4,63 @@ Replicate OpenClaw's self-learning and self-scheduling in AgentStack using Pi SD
 
 ## Current State
 
-Pi agent with conversation history via AgentStack context API, no tools, no self-learning.
+Pi agent with conversation history, persistent workspace, self-learning, and heartbeat scheduling.
 
 - Pi CLI (`@mariozechner/pi-coding-agent`) invoked via subprocess in RPC mode
-- OpenAI LLM via `OPENAI_API_KEY` env var (`.env` file)
+- OpenAI LLM (`gpt-5-codex`) via `OPENAI_API_KEY` env var
 - Conversation history persisted via AgentStack context (last 20 messages injected into Pi prompt)
-- No tools registered
+- Per-context workspace with IDENTITY/MEMORY/DIARY/HEARTBEAT markdown files
+- 60s heartbeat via `context.start_heartbeat()`
+- Pi tools (`read`/`write`/`edit`/`bash`) scoped to workspace via `cwd`
 - Python + `agentstack-sdk-py` for server/A2A integration
 
-## Architecture (Target)
-
-Embed Pi CLI inside an AgentStack Python agent. Pi provides the agent runtime (LLM, tools, sessions). AgentStack provides scheduling (heartbeat), deployment, and conversation persistence.
-
-Two persistence layers:
-- **Conversation history** → AgentStack context API (PostgreSQL, visible in UI)
-- **Self-learning artifacts** → filesystem (markdown files)
+## Architecture
 
 ```
 AgentStack UI conversation
         ↕ (context API)
-Custom SessionManager (adapter)
+Python agent handler (stack_claw)
         ↕
 Pi agent runtime (subprocess, RPC mode)
         ↕ (built-in tools)
-Filesystem (.agentstack/ workspace)
-```
-
-### Workspace isolation
-
-Each context (conversation) gets its own workspace directory scoped by `contextId`. Pi's `cwd` is set to this directory so its built-in tools (`read`/`write`/`edit`/`bash`) operate in isolation.
-
-```
-/workspace/<contextId>/
+workspaces/<contextId>/
 ├── IDENTITY.md        # agent personality, evolves over time
 ├── MEMORY.md          # accumulated facts and learnings
 ├── DIARY.md           # timestamped run summaries
-└── HEARTBEAT.md       # scheduled task checklist
+└── HEARTBEAT.md       # recurring task list (plain bullets)
 ```
 
-## Next Steps
+Two persistence layers:
+- **Conversation history** → AgentStack context API (PostgreSQL, visible in UI)
+- **Self-learning artifacts** → filesystem (markdown files per context)
+
+## Completed
 
 ### ~~1. Conversation History via AgentStack Context API~~ ✓
 - User/assistant messages stored via `RunContext.store()`
-- History loaded and last 20 messages formatted as `<conversation_history>` transcript in Pi prompt
-- Full history retained in AgentStack context, capped window for Pi's LLM context
+- Last 20 messages formatted as `<conversation_history>` in Pi prompt
+- Full history retained in AgentStack context, capped window for LLM
 
-### 2. Self-Learning
+### ~~2. Persistent Workspace~~ ✓
+- Per-context directory: `workspaces/<contextId>/`
+- Seed files created on first interaction (IDENTITY, MEMORY, DIARY, HEARTBEAT)
+- Pi's `cwd` set to workspace so built-in tools operate in isolation
+
+### ~~3. Self-Learning~~ ✓
 - `MEMORY.md` — agent appends facts/learnings, read at start of each run
-- `DIARY.md` — after each heartbeat, agent appends timestamped summary
-- `IDENTITY.md` — seeded with initial instructions, agent evolves it over time
+- `DIARY.md` — timestamped summaries after tasks/heartbeats
+- `IDENTITY.md` — seeded with initial instructions, agent evolves it
 - Pi's built-in `read`/`write`/`edit` tools handle all file operations
 
-### 3. Self-Scheduling (Heartbeat)
-- `HEARTBEAT.md` — markdown checklist, agent reads each tick, acts on items
-- Scheduler: `asyncio` task inside the agent process
-- Config via env vars: `HEARTBEAT_INTERVAL_MS`, `HEARTBEAT_CONTEXT_ID`
-- Two-phase execution (triage → action) to avoid polluting memory on no-op ticks
+### ~~4. Self-Scheduling (Heartbeat)~~ ✓
+- `HEARTBEAT.md` — plain bullet list, agent reads+executes each tick
+- 60s interval via `context.start_heartbeat()`
+- `[heartbeat]` message prefix triggers heartbeat-specific prompt
+- Agent updates MEMORY and DIARY after each tick
 
-### 4. Enable Pi Tools
-- Register coding tools (`read`, `write`, `edit`, `bash`) for workspace operations
-- Scope tools to workspace directory per context
+## Next Steps
+
+### 5. TBD
+- Evaluate real-world usage patterns and identify gaps
+- Consider multi-agent coordination
+- Explore richer tool registration beyond Pi built-ins

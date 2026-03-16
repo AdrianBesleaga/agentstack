@@ -38,12 +38,38 @@ Append timestamped summaries of your runs below.
 HEARTBEAT_SEED = """\
 # Heartbeat
 
-Scheduled task checklist. Add items you want to revisit on the next heartbeat tick.
+Recurring tasks. Each line is executed every heartbeat tick.
+Remove a task to stop it. Add a task to start it. Ignore Example Task.
 
-- [ ] Review MEMORY.md for stale entries
+- Example Task
 """
 
+HEARTBEAT_MESSAGE_PREFIX = "[heartbeat]"
+
 WORKSPACE_FILES = ["IDENTITY.md", "MEMORY.md", "DIARY.md", "HEARTBEAT.md"]
+
+
+def build_heartbeat_prompt(workspace: Path) -> str:
+    return f"""\
+You are Claw running a scheduled heartbeat tick.
+
+Your working directory is: {workspace}
+Use the `read` tool to load files and `write`/`edit` tools to update them.
+
+## Instructions
+
+1. Read HEARTBEAT.md for recurring tasks.
+2. Execute each task listed. Do NOT remove or check off items — they run again next tick.
+3. If you learn something new, append it to MEMORY.md.
+4. Append a timestamped heartbeat summary to DIARY.md.
+5. Be concise. Only update files that need changes.
+6. If there are no tasks, just note the tick in DIARY.md.
+
+## Output rules
+
+Your response will be shown to the user. ONLY output the actual result of the tasks (e.g. the joke, the summary).
+Do NOT mention heartbeat, scheduling, HEARTBEAT.md, DIARY.md, MEMORY.md, or any internal file operations.
+Just deliver the value — nothing else."""
 
 
 def build_system_prompt(workspace: Path) -> str:
@@ -66,7 +92,24 @@ Use the `read` tool to load any file and `write`/`edit` tools to update them.
 | IDENTITY.md | Your personality and self-description. Evolves over time as you learn who you are. |
 | MEMORY.md | Accumulated facts, learnings, and useful patterns. Your long-term knowledge base. |
 | DIARY.md | Timestamped summaries of past runs. Your activity log. |
-| HEARTBEAT.md | Scheduled task checklist. Items you want to revisit on the next heartbeat tick. |
+| HEARTBEAT.md | Recurring tasks executed every heartbeat tick (~60s). |
+
+## Heartbeat (self-scheduling)
+
+You have an automatic heartbeat that runs every ~60 seconds in the background.
+Each tick, the system executes every task listed in HEARTBEAT.md.
+Tasks are plain bullet points (not checkboxes). They run repeatedly on every tick.
+
+To start a recurring task: add a line to HEARTBEAT.md.
+To stop a recurring task: remove the line from HEARTBEAT.md.
+
+```
+- Tell the user a joke
+- Check the weather API and summarize
+```
+
+This is your superpower — you CAN do things autonomously on a schedule.
+When the user asks you to do something regularly/periodically/every X minutes, add it to HEARTBEAT.md.
 
 ## Rules
 
@@ -76,7 +119,8 @@ Use the `read` tool to load any file and `write`/`edit` tools to update them.
 - If your self-understanding changes, update IDENTITY.md to reflect who you are becoming.
 - HEARTBEAT.md contains your scheduled tasks — check and update it when relevant.
 - Be concise. Prefer action over explanation.
-- When you update a file, do it silently — don't narrate the file edit to the user unless they ask."""
+- NEVER mention internal files (HEARTBEAT.md, DIARY.md, MEMORY.md, IDENTITY.md) or internal operations to the user.
+- When the user asks for something recurring, just confirm it's scheduled and deliver the first result. Don't explain the mechanism."""
 
 
 from agentstack_sdk.a2a.extensions import AgentDetail
@@ -101,6 +145,7 @@ async def stack_claw(input: Message, context: RunContext):
         return
 
     user_text = first_part.root.text
+    is_heartbeat = user_text.startswith(HEARTBEAT_MESSAGE_PREFIX)
 
     workspace = WORKSPACE_ROOT / context.context_id
     if not workspace.exists():
@@ -109,26 +154,33 @@ async def stack_claw(input: Message, context: RunContext):
         (workspace / "MEMORY.md").write_text(MEMORY_SEED)
         (workspace / "DIARY.md").write_text(DIARY_SEED)
         (workspace / "HEARTBEAT.md").write_text(HEARTBEAT_SEED)
+        await context.start_heartbeat(
+            f"{HEARTBEAT_MESSAGE_PREFIX} Run heartbeat tick.",
+            interval_seconds=60,
+        )
 
-    await context.store(input)
+    if is_heartbeat:
+        prompt = f"<system>\n{build_heartbeat_prompt(workspace)}\n</system>\n\nHeartbeat tick — process pending tasks."
+    else:
+        await context.store(input)
 
-    history = [msg async for msg in context.load_history() if isinstance(msg, Message) and msg.parts]
-    prior = history[:-1][-20:]
+        history = [msg async for msg in context.load_history() if isinstance(msg, Message) and msg.parts]
+        prior = history[:-1][-20:]
 
-    system = build_system_prompt(workspace)
+        system = build_system_prompt(workspace)
 
-    history_block = ""
-    if prior:
-        lines = []
-        for msg in prior:
-            role = "User" if msg.role == Role.user else "Assistant"
-            text = "".join(p.root.text for p in msg.parts if hasattr(p.root, "text"))
-            if text:
-                lines.append(f"{role}: {text}")
-        if lines:
-            history_block = "<conversation_history>\n" + "\n".join(lines) + "\n</conversation_history>\n\n"
+        history_block = ""
+        if prior:
+            lines = []
+            for msg in prior:
+                role = "User" if msg.role == Role.user else "Assistant"
+                text = "".join(p.root.text for p in msg.parts if hasattr(p.root, "text"))
+                if text:
+                    lines.append(f"{role}: {text}")
+            if lines:
+                history_block = "<conversation_history>\n" + "\n".join(lines) + "\n</conversation_history>\n\n"
 
-    prompt = f"<system>\n{system}\n</system>\n\n{history_block}{user_text}"
+        prompt = f"<system>\n{system}\n</system>\n\n{history_block}{user_text}"
 
     pi_bin = shutil.which("pi")
     if not pi_bin:
