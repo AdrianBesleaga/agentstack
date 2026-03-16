@@ -4,11 +4,11 @@ Replicate OpenClaw's self-learning and self-scheduling in AgentStack using Pi SD
 
 ## Current State
 
-Minimal Pi agent — request/response only, no history, no tools, no persistence.
+Pi agent with conversation history via AgentStack context API, no tools, no self-learning.
 
 - Pi CLI (`@mariozechner/pi-coding-agent`) invoked via subprocess in RPC mode
 - OpenAI LLM via `OPENAI_API_KEY` env var (`.env` file)
-- In-memory session (no persistence between requests)
+- Conversation history persisted via AgentStack context (last 20 messages injected into Pi prompt)
 - No tools registered
 - Python + `agentstack-sdk-py` for server/A2A integration
 
@@ -44,11 +44,10 @@ Each context (conversation) gets its own workspace directory scoped by `contextI
 
 ## Next Steps
 
-### 1. Conversation History via AgentStack Context API
-- Custom session adapter bridging Pi sessions ↔ AgentStack contexts
-- 1 AgentStack context = 1 Pi session
-- Write path: Pi appends message → store in AgentStack context history
-- Read path: Pi builds session context → load from AgentStack context history
+### ~~1. Conversation History via AgentStack Context API~~ ✓
+- User/assistant messages stored via `RunContext.store()`
+- History loaded and last 20 messages formatted as `<conversation_history>` transcript in Pi prompt
+- Full history retained in AgentStack context, capped window for Pi's LLM context
 
 ### 2. Self-Learning
 - `MEMORY.md` — agent appends facts/learnings, read at start of each run
