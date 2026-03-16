@@ -8,6 +8,7 @@ import json
 import os
 import shutil
 from pathlib import Path
+from typing import Annotated
 
 from dotenv import load_dotenv
 
@@ -67,7 +68,8 @@ Use the `read` tool to load files and `write`/`edit` tools to update them.
 
 ## Output rules
 
-Your response will be shown to the user. ONLY output the actual result of the tasks (e.g. the joke, the summary).
+If there are no real tasks (ignore "Example Task"), output NOTHING — completely empty response. Do not update DIARY.md either.
+Otherwise, your response will be shown to the user. ONLY output the actual result of the tasks (e.g. the joke, the summary).
 Do NOT mention heartbeat, scheduling, HEARTBEAT.md, DIARY.md, MEMORY.md, or any internal file operations.
 Just deliver the value — nothing else."""
 
@@ -123,7 +125,7 @@ When the user asks you to do something regularly/periodically/every X minutes, a
 - When the user asks for something recurring, just confirm it's scheduled and deliver the first result. Don't explain the mechanism."""
 
 
-from agentstack_sdk.a2a.extensions import AgentDetail
+from agentstack_sdk.a2a.extensions import AgentDetail, TrajectoryExtensionServer, TrajectoryExtensionSpec
 from agentstack_sdk.a2a.types import AgentMessage
 from agentstack_sdk.server import Server
 from agentstack_sdk.server.context import RunContext
@@ -138,7 +140,11 @@ server = Server()
     version="1.0.0",
     detail=AgentDetail(interaction_mode="multi-turn"),
 )
-async def stack_claw(input: Message, context: RunContext):
+async def stack_claw(
+    input: Message,
+    context: RunContext,
+    trajectory: Annotated[TrajectoryExtensionServer, TrajectoryExtensionSpec()],
+):
     first_part = input.parts[0] if input.parts else None
     if not first_part or not hasattr(first_part.root, "text"):
         yield "Send me a text message."
@@ -201,6 +207,7 @@ async def stack_claw(input: Message, context: RunContext):
     )
 
     response_chunks = []
+    active_tools: dict[str, dict] = {}
     try:
         cmd = json.dumps({"type": "prompt", "message": prompt}) + "\n"
         proc.stdin.write(cmd.encode())
@@ -219,10 +226,60 @@ async def stack_claw(input: Message, context: RunContext):
 
             if event_type == "message_update":
                 delta_event = event.get("assistantMessageEvent", {})
-                if delta_event.get("type") == "text_delta":
+                delta_type = delta_event.get("type")
+
+                if delta_type == "text_delta":
                     chunk = delta_event["delta"]
                     response_chunks.append(chunk)
                     yield chunk
+
+                elif delta_type == "toolcall_start":
+                    tool_call = delta_event.get("toolCall", {})
+                    call_id = tool_call.get("id", delta_event.get("contentIndex", ""))
+                    active_tools[str(call_id)] = {"name": tool_call.get("name", "tool")}
+                    yield trajectory.trajectory_metadata(
+                        title=tool_call.get("name", "tool"),
+                        content="Running...",
+                        group_id=str(call_id),
+                    )
+
+                elif delta_type == "toolcall_end":
+                    tool_call = delta_event.get("toolCall", {})
+                    call_id = str(tool_call.get("id", delta_event.get("contentIndex", "")))
+                    name = active_tools.pop(call_id, {}).get("name", tool_call.get("name", "tool"))
+                    args = tool_call.get("args", {})
+                    yield trajectory.trajectory_metadata(
+                        title=name,
+                        content=f"```json\n{json.dumps(args, indent=2)}\n```",
+                        group_id=call_id,
+                    )
+
+            elif event_type == "tool_execution_start":
+                call_id = str(event.get("toolCallId", ""))
+                tool_name = event.get("toolName", "tool")
+                active_tools.setdefault(call_id, {})["name"] = tool_name
+                yield trajectory.trajectory_metadata(
+                    title=f"{tool_name}",
+                    content=f"```json\n{json.dumps(event.get('args', {}), indent=2)}\n```",
+                    group_id=call_id,
+                )
+
+            elif event_type == "tool_execution_end":
+                call_id = str(event.get("toolCallId", ""))
+                tool_name = event.get("toolName", active_tools.pop(call_id, {}).get("name", "tool"))
+                result = event.get("result", {})
+                is_error = event.get("isError", False)
+                result_text = ""
+                for part in result.get("content", []):
+                    if part.get("type") == "text":
+                        result_text += part.get("text", "")
+                status = "Error" if is_error else "Done"
+                content = f"**{status}**\n```\n{result_text[:2000]}\n```" if result_text else f"**{status}**"
+                yield trajectory.trajectory_metadata(
+                    title=tool_name,
+                    content=content,
+                    group_id=call_id,
+                )
 
             elif event_type == "agent_end":
                 break
@@ -235,7 +292,7 @@ async def stack_claw(input: Message, context: RunContext):
                 proc.kill()
                 await proc.wait()
 
-    full_response = "".join(response_chunks)
+    full_response = "".join(response_chunks).strip()
     if full_response:
         await context.store(AgentMessage(text=full_response))
 
