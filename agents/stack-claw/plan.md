@@ -64,9 +64,3 @@ Each context (conversation) gets its own workspace directory scoped by `contextI
 ### 4. Enable Pi Tools
 - Register coding tools (`read`, `write`, `edit`, `bash`) for workspace operations
 - Scope tools to workspace directory per context
-
-## SDK Compatibility Notes
-
-- **Signal handlers**: Both AgentStack and Pi register `SIGTERM`/`SIGINT` handlers. Pi's subprocess cleanup should be handled in `finally` blocks.
-- **Tool registration**: No conflict — Pi's tools are internal to its session, AgentStack's are A2A extensions.
-- **Concurrency**: Safe — Pi runs as a subprocess, AgentStack uses asyncio event loop.
