@@ -4,6 +4,12 @@
  */
 
 import { Server } from "agentstack-sdk/experimental/server";
+import {
+  createAgentSession,
+  AuthStorage,
+  SessionManager,
+} from "@mariozechner/pi-coding-agent";
+import { getModel } from "@mariozechner/pi-ai";
 
 setInterval(() => {}, 1 << 30);
 
@@ -11,18 +17,43 @@ const server = new Server();
 
 server.agent({
   name: "Stack Claw",
-  description: "A simple agent built with the TypeScript SDK",
+  description: "Pi-powered coding agent",
   version: "1.0.0",
   detail: {
     interaction_mode: "multi-turn",
   },
   handler: async function* (input) {
     const firstPart = input.parts.at(0);
+    if (!firstPart || !("text" in firstPart)) {
+      yield "Send me a text message.";
+      return;
+    }
 
-    if (firstPart && "text" in firstPart) {
-      yield `Hello! You said: ${firstPart.text}`;
+    const authStorage = AuthStorage.inMemory();
+    authStorage.setRuntimeApiKey("openai", process.env.OPENAI_API_KEY!);
+
+    const model = getModel("openai", "gpt-4o");
+
+    const { session } = await createAgentSession({
+      model,
+      authStorage,
+      sessionManager: SessionManager.inMemory(),
+      tools: [],
+    });
+
+    await session.prompt(firstPart.text);
+
+    const messages = session.state.messages;
+    const lastMessage = messages[messages.length - 1];
+
+    if (lastMessage?.role === "assistant") {
+      for (const content of lastMessage.content) {
+        if (content.type === "text") {
+          yield content.text;
+        }
+      }
     } else {
-      yield "Hello! Send me a text message.";
+      yield "No response from the model.";
     }
   },
 });

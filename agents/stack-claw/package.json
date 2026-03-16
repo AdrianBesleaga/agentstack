@@ -3,10 +3,12 @@
   "version": "1.0.0",
   "type": "module",
   "scripts": {
-    "start": "tsx src/agent.ts",
-    "dev": "tsx watch src/agent.ts"
+    "start": "node --env-file=.env --import=tsx/esm src/agent.ts",
+    "dev": "node --env-file=.env --watch --import=tsx/esm src/agent.ts"
   },
   "dependencies": {
+    "@mariozechner/pi-ai": "^0.58.3",
+    "@mariozechner/pi-coding-agent": "^0.58.3",
     "agentstack-sdk": "workspace:*",
     "express": "^5.0.0"
   },
