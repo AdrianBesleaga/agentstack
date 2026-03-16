@@ -1,10 +1,15 @@
-FROM node:22-alpine@sha256:ad1aedbcc1b0575074a91ac146d6956476c1f9985994810e4ee02efd932a68fd
+# renovate: datasource=github-releases depName=astral-sh/uv
+ARG UV_VERSION=0.10.9
+FROM ghcr.io/astral-sh/uv:${UV_VERSION} AS uv
+FROM python:3.14-alpine3.23@sha256:faee120f7885a06fcc9677922331391fa690d911c020abb9e8025ff3d908e510
 ARG RELEASE_VERSION="main"
-RUN corepack enable && corepack prepare pnpm@latest --activate
-COPY ./apps/agentstack-sdk-ts/ /app/apps/agentstack-sdk-ts/
-COPY ./agents/stack-claw/ /app/agents/stack-claw/
+RUN apk add --no-cache nodejs npm && npm install -g @mariozechner/pi-coding-agent
+COPY ./agents/stack-claw/ /app/agents/stack-claw
+COPY ./apps/agentstack-sdk-py/ /app/apps/agentstack-sdk-py/
 WORKDIR /app/agents/stack-claw
-RUN pnpm install --frozen-lockfile
+RUN --mount=type=cache,target=/tmp/.cache/uv \
+    --mount=type=bind,from=uv,source=/uv,target=/bin/uv \
+    UV_COMPILE_BYTECODE=1 UV_LINK_MODE=copy HOME=/tmp uv sync --no-dev
 ENV PRODUCTION_MODE=True \
     RELEASE_VERSION=${RELEASE_VERSION}
-CMD ["pnpm", "start"]
+CMD ["/app/agents/stack-claw/.venv/bin/server"]
