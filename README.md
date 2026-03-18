@@ -5,11 +5,11 @@
 [![License](https://img.shields.io/github/license/i-am-bee/agentstack)](LICENSE)
 [![Linux Foundation](https://img.shields.io/badge/Linux%20Foundation-member-003366)](https://www.linuxfoundation.org/)
 
-> **Build and test AI agents locally — fast.**
+> **Build and test AI agents locally — fast, without wiring LLMs, tools, or UI.**
 
-- **Prototype an agent** — Write agent logic. Everything else is handled.
-- **Add to an existing app** — Build and validate locally, then integrate via SDK.
-- **Wrap an existing agent** — Use [`agentstack-wrapper`](https://skills.sh/i-am-bee/agentstack/agentstack-wrapper) to wrap it automatically. No code changes.
+- **Prototype** — focus on agent logic, not setup overhead
+- **Integrate** — validate locally, then embed via SDK
+- **Wrap** — convert existing agents using [`agentstack-wrapper`](https://skills.sh/i-am-bee/agentstack/agentstack-wrapper)
 
 ---
 
