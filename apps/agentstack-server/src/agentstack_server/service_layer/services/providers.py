@@ -377,7 +377,7 @@ class ProviderService:
             await self._rotate_provider(provider=provider, env=new_env)
         except Exception as ex:
             if not provider:
-                return
+                raise
             logger.error(f"Exception occurred while updating env, rolling back to previous state: {ex}")
             async with self._uow() as uow:
                 orig_env = await uow.env.get_all(parent_entity=EnvStoreEntity.PROVIDER, parent_entity_ids=[provider_id])
